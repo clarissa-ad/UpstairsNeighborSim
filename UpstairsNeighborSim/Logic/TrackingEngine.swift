@@ -38,28 +38,22 @@ class TrackingEngine: NSObject, ObservableObject, AVCaptureVideoDataOutputSample
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         let handler = VNImageRequestHandler(cmSampleBuffer: sampleBuffer, orientation: .up)
         let request = VNDetectHumanHandPoseRequest()
-        request.maximumHandCount = 2 // Detect both hands
+        request.maximumHandCount = 2
         
         do {
             try handler.perform([request])
             var newHandGroups: [[CGPoint]] = []
-            
             if let observations = request.results {
                 for observation in observations {
                     let points = try observation.recognizedPoints(.all)
-                    let mapped = points.values
-                        .filter { $0.confidence > 0.3 }
-                        .map { $0.location }
+                    let mapped = points.values.filter { $0.confidence > 0.3 }.map { $0.location }
                     if !mapped.isEmpty { newHandGroups.append(mapped) }
                 }
             }
-            
             DispatchQueue.main.async {
                 self.handGroups = newHandGroups
                 self.handCount = newHandGroups.count
             }
-        } catch {
-            print("Vision Error: \(error)")
-        }
+        } catch { print("Vision Error: \(error)") }
     }
 }

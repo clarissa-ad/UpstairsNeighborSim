@@ -8,24 +8,29 @@ struct CameraView: NSViewRepresentable {
         let view = NSView()
         view.wantsLayer = true
         
+        // Ensure we have a backing layer
+        let rootLayer = CALayer()
+        view.layer = rootLayer
+        
         let previewLayer = AVCaptureVideoPreviewLayer(session: session)
         previewLayer.videoGravity = .resizeAspectFill
         
-        // We set a root layer to ensure the preview layer has a home
-        let rootLayer = CALayer()
-        view.layer = rootLayer
+        // Mirror the root layer
+        rootLayer.transform = CATransform3DMakeScale(-1, 1, 1)
         rootLayer.addSublayer(previewLayer)
-        
-        // Mirror horizontally for a natural 'window' feel
-        view.layer?.transform = CATransform3DMakeScale(-1, 1, 1)
         
         return view
     }
     
     func updateNSView(_ nsView: NSView, context: Context) {
-        // Essential: Keeps the camera feed filling the window
-        if let previewLayer = nsView.layer?.sublayers?.first as? AVCaptureVideoPreviewLayer {
-            previewLayer.frame = nsView.bounds
+        // Force the preview layer to match exactly the bounds of the window
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        nsView.layer?.sublayers?.forEach { layer in
+            if layer is AVCaptureVideoPreviewLayer {
+                layer.frame = nsView.bounds
+            }
         }
+        CATransaction.commit()
     }
 }
