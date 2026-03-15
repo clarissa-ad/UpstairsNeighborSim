@@ -1,36 +1,47 @@
 import SwiftUI
 import AVFoundation
+import AppKit
 
+// 1. We create a dedicated Mac View to handle the video layer
+class MacVideoPreviewView: NSView {
+    private var previewLayer: AVCaptureVideoPreviewLayer
+    
+    init(session: AVCaptureSession) {
+        self.previewLayer = AVCaptureVideoPreviewLayer(session: session)
+        super.init(frame: .zero)
+        
+        self.wantsLayer = true
+        self.layer?.addSublayer(previewLayer)
+        
+        self.previewLayer.videoGravity = .resizeAspectFill
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    // 2. This is the magic! It forces the video to ALWAYS match the window size.
+    override func layout() {
+        super.layout()
+        previewLayer.frame = self.bounds
+        
+        // 3. The safest way to mirror the camera on Mac (avoids off-screen flipping)
+        if let connection = previewLayer.connection, connection.isVideoMirroringSupported {
+            connection.automaticallyAdjustsVideoMirroring = false
+            connection.isVideoMirrored = true
+        }
+    }
+}
+
+// 4. The SwiftUI Wrapper
 struct CameraView: NSViewRepresentable {
     let session: AVCaptureSession
     
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        view.wantsLayer = true
-        
-        // Ensure we have a backing layer
-        let rootLayer = CALayer()
-        view.layer = rootLayer
-        
-        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
-        previewLayer.videoGravity = .resizeAspectFill
-        
-        // Mirror the root layer
-        rootLayer.transform = CATransform3DMakeScale(-1, 1, 1)
-        rootLayer.addSublayer(previewLayer)
-        
-        return view
+    func makeNSView(context: Context) -> MacVideoPreviewView {
+        return MacVideoPreviewView(session: session)
     }
     
-    func updateNSView(_ nsView: NSView, context: Context) {
-        // Force the preview layer to match exactly the bounds of the window
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        nsView.layer?.sublayers?.forEach { layer in
-            if layer is AVCaptureVideoPreviewLayer {
-                layer.frame = nsView.bounds
-            }
-        }
-        CATransaction.commit()
+    func updateNSView(_ nsView: MacVideoPreviewView, context: Context) {
+        // We don't need to do anything here anymore! The MacVideoPreviewView handles itself.
     }
 }
