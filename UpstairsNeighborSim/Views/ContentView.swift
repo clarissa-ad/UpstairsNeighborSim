@@ -1,5 +1,7 @@
 import SwiftUI
 
+// test
+
 // 1. THE SCALABLE ROSTER
 // This is your "Registry". Add one line here, and the menu updates automatically.
 enum Activity: String, CaseIterable {
