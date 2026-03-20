@@ -2,8 +2,8 @@ import SwiftUI
 
 // 🔧 A cleaner list of scenes to test
 enum DebugScene: String, CaseIterable {
-    case stomp = "🥾 STOMP! (Injak)"
-    // case shake = "KOCOK!"
+    case stomp = "🥾 STOMP!"
+    case snooze = "⏰ SNOOZE!"
 }
 
 struct DebugTrackerView: View {
@@ -21,6 +21,10 @@ struct DebugTrackerView: View {
             switch selectedScene {
             case .stomp:
                 StompScene(engine: engine, score: $mockScore) {
+                    winCount += 1
+                }
+            case .snooze:
+                SnoozeScene(engine: engine, score: $mockScore) {
                     winCount += 1
                 }
             }
