@@ -52,7 +52,7 @@ struct StompScene: View {
                 }
             }
             // 3. The Logic Loop
-            .onChange(of: engine.hands) { _ in
+            .onChange(of: engine.hands) {
                 checkStompLogic()
             }
         }

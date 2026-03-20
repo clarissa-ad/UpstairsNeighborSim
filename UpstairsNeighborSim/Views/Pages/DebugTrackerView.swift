@@ -4,6 +4,8 @@ import SwiftUI
 enum DebugScene: String, CaseIterable {
     case stomp = "🥾 STOMP!"
     case snooze = "⏰ SNOOZE!"
+    case dance = "💃 DANCE!"
+    case dj = "🎧 DJ!"
 }
 
 struct DebugTrackerView: View {
@@ -25,6 +27,14 @@ struct DebugTrackerView: View {
                 }
             case .snooze:
                 SnoozeScene(engine: engine, score: $mockScore) {
+                    winCount += 1
+                }
+            case .dance:
+                PartyScene(engine: engine, score: $mockScore){
+                    winCount += 1
+                }
+            case .dj:
+                DJScene(engine: engine, score: $mockScore){
                     winCount += 1
                 }
             }
@@ -71,7 +81,7 @@ struct DebugTrackerView: View {
             }
             .padding(30)
         }
-        .onChange(of: selectedScene) { _ in
+        .onChange(of: selectedScene) {
             mockScore = 0
             winCount = 0
         }

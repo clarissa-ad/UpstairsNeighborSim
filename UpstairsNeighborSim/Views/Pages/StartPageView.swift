@@ -3,25 +3,26 @@ import SwiftUI
 struct StartPageView: View {
     @ObservedObject var engine: TrackingEngine
     var onStart: () -> Void
-    var onDebug: () -> Void // 🔧 NEW callback
+    var onDebug: () -> Void
     
     var body: some View {
         ZStack {
-            // Secret Debug Menu Top Right
+            // Practice Gym Menu (Top Right)
             VStack {
                 HStack {
                     Spacer()
-                    Menu {
-                        Button("🔧 Open Scene Sandbox", action: onDebug)
-                    } label: {
-                        Image(systemName: "line.3.horizontal")
-                            .font(.title)
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(Color.black.opacity(0.5))
-                            .cornerRadius(10)
+                    Button(action: onDebug) {
+                        HStack {
+                            Text("🏋️")
+                            Text("Practice Gym")
+                                .font(.headline.bold())
+                        }
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(Color.blue.opacity(0.8))
+                        .cornerRadius(10)
                     }
-                    .menuStyle(.borderlessButton)
+                    .buttonStyle(.plain)
                 }
                 .padding(30)
                 Spacer()
@@ -47,6 +48,7 @@ struct StartPageView: View {
                         .foregroundColor(.white)
                         .cornerRadius(15)
                 }
+                .buttonStyle(.plain) // Ensures clickability in macOS
             }
         }
     }
