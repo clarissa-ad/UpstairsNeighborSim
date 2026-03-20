@@ -1,153 +1,82 @@
 import SwiftUI
 
-// test
-
-// 1. THE SCALABLE ROSTER
-// This is your "Registry". Add one line here, and the menu updates automatically.
-enum Activity: String, CaseIterable {
-    case blob = "🔴 The Blob"
-    case thud = "💥 The Thud" // ADDED: Our new impact game!
-    case empty = "📷 Camera Only"
-    // Example for tomorrow:
-    // case rubberDuck = "🦆 Duck Ambassador"
+enum GameState {
+    case intro
+    case playing
+    case results
+    case debug
 }
 
 struct ContentView: View {
     @StateObject private var engine = TrackingEngine()
-    @StateObject private var blobGame = BlobScene()
-    @StateObject private var thudGame = ThudScene() // ADDED: The thud game engine
-    
-    // 2. STATE: Keeps track of which game is currently playing
-    @State private var currentActivity: Activity = .blob
-    
-    let handColors: [Color] = [.green, .cyan]
+    @State private var currentState: GameState = .intro
+    @State private var totalScore: Int = 0
     
     var body: some View {
-        GeometryReader { geo in
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
+        GeometryReader { outerGeo in
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                HStack(spacing: 0) {
+                    Spacer(minLength: 0)
                     
+                    // 🔒 THE VAULT: Everything inside this ZStack is permanently locked to a 16:9 ratio.
+                    // This guarantees the camera pixels and the AI math pixels are a 1:1 match.
                     ZStack {
                         // LAYER 1: The Camera
                         CameraView(session: engine.session)
-                            .opacity(1.0)
                         
-                        // LAYER 2: THE MODULAR ACTIVITY SWITCHER
+                        // LAYER 2: The Page Router
                         Group {
-                            switch currentActivity {
-                            case .blob:
-                                Circle()
-                                    .fill(blobGame.isBeingPushed ? Color.orange : Color.blue)
-                                    .frame(width: 100, height: 100)
-                                    .position(blobGame.position)
-                                    .shadow(radius: blobGame.isBeingPushed ? 20 : 5)
-                                    .animation(.spring(), value: blobGame.position)
-                                    
-                            case .thud:
-                                // 1. Draw the Target Dots
-                                ForEach(thudGame.dots) { dot in
-                                    Circle()
-                                        .fill(Color.red)
-                                        .frame(width: 50, height: 50)
-                                        .scaleEffect(dot.isExploding ? 4.0 : 1.0)
-                                        .opacity(dot.isExploding ? 0.0 : 0.8)
-                                        .position(dot.position)
-                                        .animation(.easeOut(duration: 0.4), value: dot.isExploding)
+                            switch currentState {
+                            case .intro:
+                                StartPageView(engine: engine, onStart: {
+                                    currentState = .playing
+                                    totalScore = 0
+                                }, onDebug: {
+                                    currentState = .debug
+                                })
+                                
+                            case .playing:
+                                GamePageView(engine: engine, score: $totalScore) {
+                                    currentState = .results
                                 }
                                 
-                                // 2. NEW: Draw the Score UI
-                                VStack {
-                                    HStack {
-                                        Text("THUDS: \(thudGame.score)")
-                                            .font(.system(.title2, design: .monospaced).bold())
-                                            .foregroundColor(.white)
-                                            .padding()
-                                            .background(VisualEffectView(material: .hudWindow, blendingMode: .withinWindow).cornerRadius(10))
-                                            .shadow(radius: 5)
-                                            .padding() // Gives it some breathing room from the edges
-                                        Spacer()
-                                    }
-                                    Spacer()
+                            case .results:
+                                ResultsPageView(score: totalScore) {
+                                    currentState = .intro
                                 }
                                 
-                            case .empty:
-                                // Just the camera and skeleton, nothing to interact with
-                                EmptyView()
+                            case .debug:
+                                DebugTrackerView(engine: engine) {
+                                    currentState = .intro
+                                }
                             }
                         }
                         
-                        // LAYER 3: The Exact Skeleton
+                        // LAYER 3: The Precise AR Skeleton
                         Canvas { context, size in
-                            for (index, points) in engine.handGroups.enumerated() {
-                                let color = handColors[index % handColors.count]
-                                for point in points {
+                            for hand in engine.hands {
+                                for point in hand.allPoints {
                                     let x = (1 - point.x) * size.width
                                     let y = (1 - point.y) * size.height
                                     let dot = Path(ellipseIn: CGRect(x: x-4, y: y-4, width: 8, height: 8))
-                                    context.fill(dot, with: .color(color))
+                                    context.fill(dot, with: .color(.green))
                                 }
                             }
                         }
-                        
-                        // LAYER 4: The Floating Burger Menu
-                        VStack {
-                            Menu {
-                                // Automatically loops through all 'Activity' cases
-                                ForEach(Activity.allCases, id: \.self) { activity in
-                                    Button(activity.rawValue) {
-                                        currentActivity = activity
-                                    }
-                                }
-                            } label: {
-                                Image(systemName: "line.3.horizontal")
-                                    .font(.title2)
-                                    .foregroundColor(.white)
-                                    .padding(12)
-                                    .background(VisualEffectView(material: .hudWindow, blendingMode: .withinWindow).cornerRadius(10))
-                                    .shadow(radius: 5)
-                            }
-                            .menuStyle(.borderlessButton) // Removes the default Mac button styling
-                            .frame(width: 60)
-                            
-                            Spacer() // Pushes the menu to the top
-                        }
-                        .padding(.top, 20)
-                        
+                        .drawingGroup()
+                        .allowsHitTesting(false)
                     }
-                    .aspectRatio(16/9, contentMode: .fit)
-                    .background(
-                        GeometryReader { innerGeo in
-                            Color.clear.onChange(of: engine.handGroups) {
-                                // We keep updating the game engines in the background
-                                blobGame.update(with: engine.handGroups, in: innerGeo.size)
-                                thudGame.update(with: engine.handGroups, in: innerGeo.size) // ADDED: Send hand data to the Thud engine
-                            }
-                        }
-                    )
-                    Spacer()
+                    .aspectRatio(16/9, contentMode: .fit) // THE MAGIC FIX
+                    .clipped() // Prevents anything from spilling outside the 16:9 box
+                    
+                    Spacer(minLength: 0)
                 }
-                Spacer()
+                Spacer(minLength: 0)
             }
             .background(Color.black)
         }
         .frame(minWidth: 800, minHeight: 600)
         .onAppear { engine.start() }
     }
-}
-
-// Helper for the nice frosted glass effect behind the burger menu
-struct VisualEffectView: NSViewRepresentable {
-    let material: NSVisualEffectView.Material
-    let blendingMode: NSVisualEffectView.BlendingMode
-    
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = material
-        view.blendingMode = blendingMode
-        view.state = .active
-        return view
-    }
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }
