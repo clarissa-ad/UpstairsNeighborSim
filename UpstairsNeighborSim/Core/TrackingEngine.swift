@@ -3,57 +3,84 @@ import Vision
 import AVFoundation
 import Combine
 
-class TrackingEngine: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
-    @Published var handGroups: [[CGPoint]] = []
-    @Published var handCount: Int = 0
+class TrackingEngine: NSObject, ObservableObject {
+    @Published var hands: [HandData] = []
+    @Published var session = AVCaptureSession()
     
-    let session = AVCaptureSession()
     private let videoOutput = AVCaptureVideoDataOutput()
+    private let handPoseRequest = VNDetectHumanHandPoseRequest()
     
     override init() {
         super.init()
-        prepareCamera()
+        setupSession()
     }
     
-    private func prepareCamera() {
-        session.beginConfiguration()
-        guard let device = AVCaptureDevice.default(for: .video),
-              let input = try? AVCaptureDeviceInput(device: device) else {
-            session.commitConfiguration()
-            return
+    private func setupSession() {
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else { return }
+        do {
+            let input = try AVCaptureDeviceInput(device: device)
+            if session.canAddInput(input) { session.addInput(input) }
+            
+            videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue"))
+            if session.canAddOutput(videoOutput) { session.addOutput(videoOutput) }
+            
+            handPoseRequest.maximumHandCount = 2
+        } catch {
+            print(error)
         }
-        if session.canAddInput(input) { session.addInput(input) }
-        videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue"))
-        if session.canAddOutput(videoOutput) { session.addOutput(videoOutput) }
-        session.commitConfiguration()
     }
     
     func start() {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self else { return }
-            if !self.session.isRunning { self.session.startRunning() }
+            self?.session.startRunning()
         }
     }
-    
+}
+
+extension TrackingEngine: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        let handler = VNImageRequestHandler(cmSampleBuffer: sampleBuffer, orientation: .up)
-        let request = VNDetectHumanHandPoseRequest()
-        request.maximumHandCount = 2
-        
+        let handler = VNImageRequestHandler(cmSampleBuffer: sampleBuffer, orientation: .up, options: [:])
         do {
-            try handler.perform([request])
-            var newHandGroups: [[CGPoint]] = []
-            if let observations = request.results {
-                for observation in observations {
-                    let points = try observation.recognizedPoints(.all)
-                    let mapped = points.values.filter { $0.confidence > 0.3 }.map { $0.location }
-                    if !mapped.isEmpty { newHandGroups.append(mapped) }
+            try handler.perform([handPoseRequest])
+            
+            guard let observations = handPoseRequest.results, !observations.isEmpty else {
+                DispatchQueue.main.async { self.hands = [] }
+                return
+            }
+            
+            var detectedHands: [HandData] = []
+            
+            for observation in observations {
+                do {
+                    let allPointsDict = try observation.recognizedPoints(.all)
+                    let allCGPoints = allPointsDict.values.filter { $0.confidence > 0.3 }.map {
+                        CGPoint(x: $0.location.x, y: $0.location.y)
+                    }
+                    
+                    let indexTip = try observation.recognizedPoint(.indexTip)
+                    let thumbTip = try observation.recognizedPoint(.thumbTip)
+                    let wrist = try observation.recognizedPoint(.wrist)
+                    
+                    let hand = HandData(
+                        indexTip: CGPoint(x: indexTip.location.x, y: indexTip.location.y),
+                        thumbTip: CGPoint(x: thumbTip.location.x, y: thumbTip.location.y),
+                        wrist: CGPoint(x: wrist.location.x, y: wrist.location.y),
+                        allPoints: allCGPoints,
+                        isDetected: true
+                    )
+                    
+                    detectedHands.append(hand)
+                } catch {
+                    continue
                 }
             }
+            
             DispatchQueue.main.async {
-                self.handGroups = newHandGroups
-                self.handCount = newHandGroups.count
+                self.hands = detectedHands
             }
-        } catch { print("Vision Error: \(error)") }
+            
+        } catch {
+            print(error)
+        }
     }
 }
