@@ -66,7 +66,7 @@ struct SnoozeScene: View {
                 }
             }
             .onAppear { setupAlarms() }
-            .onChange(of: engine.hands) { _ in
+            .onChange(of: engine.hands) {
                 checkTaps(in: geo.size)
             }
         }
