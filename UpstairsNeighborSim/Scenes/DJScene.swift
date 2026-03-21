@@ -3,7 +3,7 @@ import SwiftUI
 struct DJScene: View {
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
-    var onWin: () -> Void
+    var onComplete: (Bool) -> Void
     
     // 🔧 Game State
     @State private var hypeLevel: CGFloat = 0.0
@@ -101,7 +101,7 @@ struct DJScene: View {
         score += 50
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            onWin()
+            onComplete(true)
             // Sandbox Reset
             hypeLevel = 0.0
             previousPositions = []

@@ -3,7 +3,7 @@ import SwiftUI
 struct StompScene: View {
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
-    var onWin: () -> Void
+    var onComplete: (Bool) -> Void
     
     // 🔧 Simplified Game State
     @State private var hitCount: Int = 0
@@ -95,7 +95,7 @@ struct StompScene: View {
         // 3. Check for Win Condition (3 hits)
         if hitCount >= requiredHits {
             score += 50
-            onWin() // Tell the Sandbox/Director we completed a full set
+            onComplete(true) // Tell the Sandbox/Director we completed a full set
             hitCount = 0 // Silently reset the counter so you can loop it forever!
         }
     }

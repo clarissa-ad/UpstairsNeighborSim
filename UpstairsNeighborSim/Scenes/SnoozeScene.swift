@@ -10,7 +10,7 @@ struct AlarmTarget: Identifiable {
 struct SnoozeScene: View {
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
-    var onWin: () -> Void
+    var onComplete: (Bool) -> Void
     
     // 🔧 Game State
     @State private var alarms: [AlarmTarget] = []
@@ -123,7 +123,7 @@ struct SnoozeScene: View {
                     // 🏆 CARTRIDGE COMPLETE: Tell the sandbox we won 4 rounds!
                     score += 50
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        onWin()
+                        onComplete(true)
                         currentMiniRound = 1 // Reset back to massive Level 1
                         setupAlarms()
                     }

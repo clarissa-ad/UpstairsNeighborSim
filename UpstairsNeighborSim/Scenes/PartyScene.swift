@@ -8,7 +8,7 @@ enum PartySide {
 struct PartyScene: View {
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
-    var onWin: () -> Void
+    var onComplete: (Bool) -> Void
     
     // 🔧 Game State
     @State private var currentSide: PartySide = .left
@@ -87,6 +87,9 @@ struct PartyScene: View {
     }
     
     private func triggerHit(nextSide: PartySide) {
+        // sound
+        AudioManager.shared.playSFX("whoosh")
+        
         currentSide = nextSide
         hits += 1
         score += 20
@@ -98,7 +101,7 @@ struct PartyScene: View {
             score += 50
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                onWin()
+                onComplete(true)
                 hits = 0
                 currentSide = .left
                 bgColor = .black

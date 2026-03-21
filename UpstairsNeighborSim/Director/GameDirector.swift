@@ -1,46 +1,50 @@
 import SwiftUI
 import Combine
 
-// 🔧 The NEW Enum that controls the timers for each game
+// 1. THE DATABASE: Centralized Metadata for all games
 enum MiniGame: CaseIterable {
     case stomp, snooze, party, dj
     
+    // Instruction text that appears in the HUD
+    var instruction: String {
+        switch self {
+        case .stomp: return "STOMP!"
+        case .snooze: return "SNOOZE!"
+        case .party: return "WAVE!"
+        case .dj: return "SCRATCH!"
+        }
+    }
+    
+    // The specific time limit for each game
     var timeLimit: Double {
         switch self {
         case .stomp: return 4.0
-        case .snooze: return 8.0
+        case .snooze: return 7.0
         case .party: return 5.0
         case .dj: return 6.0
         }
     }
 }
 
+// 2. THE REFEREE: Manages the clock and the game flow
 class GameDirector: ObservableObject {
-    // 🔧 The NEW variable that GamePageView is looking for!
     @Published var currentGame: MiniGame = .stomp
+    @Published var timeRemaining: Double = 5.0
     
-    @Published var timeRemaining: Double = 4.0
-    @Published var timePerRound: Double = 4.0
-    @Published var roundsPlayed: Int = 0
-    @Published var isGameOver: Bool = false
-    
-    let maxRounds: Int = 10
     private var timerCancellable: AnyCancellable?
     
     func start() {
-        roundsPlayed = 0
-        isGameOver = false
         pickNextActivity(isFirstRound: true)
-        startTimer()
     }
-    
+
+    func nextRound(success: Bool) {
+        timerCancellable?.cancel()
+        pickNextActivity()
+    }
+
     func pickNextActivity(isFirstRound: Bool = false) {
-        if roundsPlayed >= maxRounds {
-            endGame()
-            return
-        }
-        
         var nextGame = MiniGame.allCases.randomElement() ?? .stomp
+        
         if !isFirstRound {
             while nextGame == currentGame {
                 nextGame = MiniGame.allCases.randomElement() ?? .stomp
@@ -48,31 +52,23 @@ class GameDirector: ObservableObject {
         }
         
         currentGame = nextGame
-        timePerRound = nextGame.timeLimit
         timeRemaining = nextGame.timeLimit
-        roundsPlayed += 1
+        
+        startTimer()
     }
-    
+
     private func startTimer() {
-        timerCancellable = Timer.publish(every: 0.05, on: .main, in: .common)
+        timerCancellable?.cancel()
+        
+        timerCancellable = Timer.publish(every: 0.1, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
-                self?.tick()
+                guard let self = self else { return }
+                self.timeRemaining -= 0.1
+                
+                if self.timeRemaining <= 0 {
+                    self.nextRound(success: false)
+                }
             }
-    }
-    
-    private func tick() {
-        guard !isGameOver else { return }
-        
-        timeRemaining -= 0.05
-        
-        if timeRemaining <= 0 {
-            pickNextActivity()
-        }
-    }
-    
-    func endGame() {
-        isGameOver = true
-        timerCancellable?.cancel()
     }
 }

@@ -9,70 +9,70 @@ struct GamePageView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // TOP HUD
+            
+            // 1. TOP HUD: Instruction & Score
             HStack {
-                Text("NOISE: \(score)")
-                    .font(.system(.title2, design: .monospaced).bold())
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.black.opacity(0.6))
-                    .cornerRadius(10)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(director.currentGame.instruction)
+                        .font(.system(size: 40, weight: .black, design: .rounded))
+                        .foregroundColor(.yellow)
+                    
+                    Text("NOISE: \(score)")
+                        .font(.system(.title3, design: .monospaced).bold())
+                        .foregroundColor(.white)
+                }
+                .padding()
+                .background(Color.black.opacity(0.6))
+                .cornerRadius(15)
                 
                 Spacer()
-                
-                Text("ROUND \(director.roundsPlayed)/\(director.maxRounds)")
-                    .font(.headline)
-                    .foregroundColor(.yellow)
-                    .padding()
-                    .background(Color.black.opacity(0.6))
-                    .cornerRadius(10)
             }
             .padding()
-            .zIndex(2) // Keeps HUD above the games
+            .zIndex(2)
             
-            // THE STAGE (Loads the specific game)
+            // 2. THE STAGE: The Switchboard
             Group {
                 switch director.currentGame {
                 case .stomp:
-                    StompScene(engine: engine, score: $score) {
-                        director.pickNextActivity()
-                    }
+                    StompScene(engine: engine, score: $score, onComplete: { success in
+                        director.nextRound(success: success)
+                    })
                 case .snooze:
-                    SnoozeScene(engine: engine, score: $score) {
-                        director.pickNextActivity()
-                    }
+                    SnoozeScene(engine: engine, score: $score, onComplete: { success in
+                        director.nextRound(success: success)
+                    })
                 case .party:
-                    PartyScene(engine: engine, score: $score) {
-                        director.pickNextActivity()
-                    }
+                    PartyScene(engine: engine, score: $score, onComplete: { success in
+                        director.nextRound(success: success)
+                    })
                 case .dj:
-                    DJScene(engine: engine, score: $score) {
-                        director.pickNextActivity()
-                    }
+                    DJScene(engine: engine, score: $score, onComplete: { success in
+                        director.nextRound(success: success)
+                    })
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             
-            // BOTTOM PANIC TIMER
+            // 3. BOTTOM PANIC TIMER
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Rectangle()
                         .fill(Color.gray.opacity(0.3))
-                        .frame(height: 30)
+                        .frame(height: 25)
                     
                     Rectangle()
-                        .fill(director.timeRemaining > 2.0 ? Color.green : Color.red)
-                        .frame(width: max(0, geo.size.width * (director.timeRemaining / director.timePerRound)), height: 30)
-                        .animation(.linear(duration: 0.05), value: director.timeRemaining)
+                        .fill(director.timeRemaining > 1.5 ? Color.green : Color.red)
+                        .frame(width: max(0, geo.size.width * (director.timeRemaining / director.currentGame.timeLimit)), height: 25)
+                        .animation(.linear(duration: 0.1), value: director.timeRemaining)
                 }
-                .cornerRadius(15)
+                .cornerRadius(12.5)
             }
-            .frame(height: 30)
+            .frame(height: 25)
             .padding()
         }
-        .onAppear { director.start() }
-        .onChange(of: director.isGameOver) {
-            if director.isGameOver { onGameOver() }
+        .background(Color.black.ignoresSafeArea())
+        .onAppear {
+            director.start()
         }
     }
 }

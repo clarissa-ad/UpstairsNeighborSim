@@ -22,19 +22,19 @@ struct DebugTrackerView: View {
             // 1. Load the Selected Scene (ContentView handles the dots on top of this)
             switch selectedScene {
             case .stomp:
-                StompScene(engine: engine, score: $mockScore) {
+                StompScene(engine: engine, score: $mockScore) { _ in
                     winCount += 1
                 }
             case .snooze:
-                SnoozeScene(engine: engine, score: $mockScore) {
+                SnoozeScene(engine: engine, score: $mockScore) { _ in
                     winCount += 1
                 }
             case .dance:
-                PartyScene(engine: engine, score: $mockScore){
+                PartyScene(engine: engine, score: $mockScore){ _ in
                     winCount += 1
                 }
             case .dj:
-                DJScene(engine: engine, score: $mockScore){
+                DJScene(engine: engine, score: $mockScore){ _ in
                     winCount += 1
                 }
             }
