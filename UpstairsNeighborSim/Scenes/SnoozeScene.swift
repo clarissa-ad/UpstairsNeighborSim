@@ -100,6 +100,7 @@ struct SnoozeScene: View {
                 
                 // 🔧 HIT MATH: We now check against the dynamically shrinking threshold!
                 if distance < currentThreshold {
+                    AudioManager.shared.playSFX("snooze")
                     alarms[i].isSnoozed = true
                     score += 10
                     snoozedSomethingThisFrame = true

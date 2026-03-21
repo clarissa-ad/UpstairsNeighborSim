@@ -84,6 +84,9 @@ struct StompScene: View {
         // 1. Lock it so they can't get multiple points for one stomp
         isReady = false
         
+        // adds an sfx
+        AudioManager.shared.playSFX("stomp")
+        
         // 2. Instantly turn Green and add points!
         flashColor = .green
         hitCount += 1

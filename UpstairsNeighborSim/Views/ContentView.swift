@@ -77,6 +77,8 @@ struct ContentView: View {
             .background(Color.black)
         }
         .frame(minWidth: 800, minHeight: 600)
-        .onAppear { engine.start() }
+        .onAppear {
+            engine.start()
+        }
     }
 }
