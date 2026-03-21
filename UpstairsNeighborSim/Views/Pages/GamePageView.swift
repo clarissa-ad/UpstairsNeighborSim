@@ -34,21 +34,15 @@ struct GamePageView: View {
             Group {
                 switch director.currentGame {
                 case .stomp:
-                    StompScene(engine: engine, score: $score, onComplete: { success in
-                        director.nextRound(success: success)
-                    })
+                    StompScene(engine: engine, score: $score, onComplete: { win in director.nextRound(success: win) })
                 case .snooze:
-                    SnoozeScene(engine: engine, score: $score, onComplete: { success in
-                        director.nextRound(success: success)
-                    })
+                    SnoozeScene(engine: engine, score: $score, onComplete: { win in director.nextRound(success: win) })
                 case .party:
-                    PartyScene(engine: engine, score: $score, onComplete: { success in
-                        director.nextRound(success: success)
-                    })
+                    PartyScene(engine: engine, score: $score, onComplete: { win in director.nextRound(success: win) })
                 case .dj:
-                    DJScene(engine: engine, score: $score, onComplete: { success in
-                        director.nextRound(success: success)
-                    })
+                    DJScene(engine: engine, score: $score, onComplete: { win in director.nextRound(success: win) })
+                case .cymbals:
+                    CymbalScene(engine: engine, score: $score, onComplete: { win in director.nextRound(success: win) })
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
