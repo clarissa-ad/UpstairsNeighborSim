@@ -7,6 +7,7 @@ enum DebugScene: String, CaseIterable {
     case dance = "💃 DANCE!"
     case dj = "🎧 DJ!"
     case cymbals = "🥁 CYMBALS!"
+    case bonus = "6️⃣7️⃣ BONUS!"
 }
 
 struct DebugTrackerView: View {
@@ -40,6 +41,10 @@ struct DebugTrackerView: View {
                 }
             case .cymbals:
                 CymbalScene(engine: engine, score: $mockScore){ _ in
+                    winCount += 1
+                }
+            case .bonus:
+                BonusScene(engine: engine, score: $mockScore){ _ in
                     winCount += 1
                 }
             }

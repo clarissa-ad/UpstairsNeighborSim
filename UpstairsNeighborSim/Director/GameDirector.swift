@@ -3,7 +3,7 @@ import Combine
 
 // 1. THE DATABASE: Centralized Metadata for all games
 enum MiniGame: CaseIterable {
-    case stomp, snooze, party, dj, cymbals
+    case stomp, snooze, party, dj, cymbals, bonus
     
     // Instruction text that appears in the HUD
     var instruction: String {
@@ -13,17 +13,16 @@ enum MiniGame: CaseIterable {
         case .party: return "WAVE!"
         case .dj: return "SCRATCH!"
         case .cymbals: return "CLAP!"
+        case .bonus: return "BONUS STAGE!"
         }
     }
     
     // The specific time limit for each game
     var timeLimit: Double {
         switch self {
-        case .stomp: return 4.0
         case .snooze: return 7.0
-        case .party: return 5.0
-        case .dj: return 6.0
-        case .cymbals: return 5.0
+        case .bonus: return 9.0
+        default: return 5.0
         }
     }
 }

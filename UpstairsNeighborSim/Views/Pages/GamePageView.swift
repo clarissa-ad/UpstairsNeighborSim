@@ -43,6 +43,8 @@ struct GamePageView: View {
                     DJScene(engine: engine, score: $score, onComplete: { win in director.nextRound(success: win) })
                 case .cymbals:
                     CymbalScene(engine: engine, score: $score, onComplete: { win in director.nextRound(success: win) })
+                case .bonus:
+                    BonusScene(engine: engine, score: $score, onComplete: { win in director.nextRound(success: win) })
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
