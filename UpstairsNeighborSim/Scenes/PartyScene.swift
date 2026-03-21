@@ -1,143 +1,125 @@
 import SwiftUI
 
+// Used to track which side of the screen they need to wave to next
 enum PartySide {
-    case left
-    case right
+    case left, right
 }
 
 struct PartyScene: View {
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
-    var onComplete: (Bool) -> Void
+    var onComplete: (Bool) -> Void // Kept so the GamePageView contract stays intact
     
-    // 🔧 Game State
-    @State private var currentSide: PartySide = .left
+    // 🔧 Infinite Game State
     @State private var hits: Int = 0
-    @State private var hasWon: Bool = false
+    @State private var currentSide: PartySide = .left
     @State private var bgColor: Color = .black
     
-    // 📐 The Math
-    let requiredHits: Int = 6
-    let zoneWidthPercentage: CGFloat = 0.3
-    let partyColors: [Color] = [.purple, .blue, .pink, .orange, .cyan]
+    // 🪩 Disco colors for when they hit a zone
+    let partyColors: [Color] = [.purple, .blue, .green, .red, .orange, .cyan]
     
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                bgColor
-                    .ignoresSafeArea()
-                    .animation(.interactiveSpring(), value: bgColor)
+                // 1. The Disco Background (Flashes on hit)
+                bgColor.ignoresSafeArea()
                 
+                // 2. HUD & Instructions
                 VStack {
-                    Text(hasWon ? "PARTY OVER!" : "HANDS UP!")
-                        .font(.system(size: 60, weight: .black, design: .rounded))
+                    Text("ANGKAT TANGAN!")
+                        .font(.system(size: 50, weight: .black, design: .rounded))
                         .foregroundColor(.white)
-                        .shadow(color: .black, radius: 5)
-                    
-                    Text("BEATS: \(hits) / \(requiredHits)")
+                        .shadow(color: .purple, radius: 10)
+                        
+                    // 🔧 UPDATE: Uncapped wave counter!
+                    Text("WAVES: \(hits)!")
                         .font(.title.bold())
                         .foregroundColor(.yellow)
-                        .shadow(color: .black, radius: 2)
-                    
+                        
                     Spacer()
                 }
                 .padding(40)
+                .zIndex(2)
                 
-                if currentSide == .left && !hasWon {
-                    HStack {
-                        PartyTileView(text: "👋 WAVE!")
-                            .frame(width: geo.size.width * zoneWidthPercentage)
-                        Spacer()
-                    }
-                }
-                
-                if currentSide == .right && !hasWon {
-                    HStack {
-                        Spacer()
-                        PartyTileView(text: "WAVE! 👋")
-                            .frame(width: geo.size.width * zoneWidthPercentage)
-                    }
+                // 3. The Target Zones
+                HStack(spacing: 0) {
+                    // LEFT HIT ZONE
+                    Rectangle()
+                        .fill(currentSide == .left ? Color.white.opacity(0.2) : Color.clear)
+                        .frame(width: geo.size.width / 3)
+                        .overlay(
+                            Text(currentSide == .left ? "👋 SINI!" : "")
+                                .font(.title.bold())
+                                .foregroundColor(.white)
+                        )
+                    
+                    Spacer()
+                    
+                    // RIGHT HIT ZONE
+                    Rectangle()
+                        .fill(currentSide == .right ? Color.white.opacity(0.2) : Color.clear)
+                        .frame(width: geo.size.width / 3)
+                        .overlay(
+                            Text(currentSide == .right ? "SINI! 👋" : "")
+                                .font(.title.bold())
+                                .foregroundColor(.white)
+                        )
                 }
             }
-            // 🔧 macOS 14 FIX: Removed the '_ in'
+            // 4. The Logic Loop
             .onChange(of: engine.hands) {
-                checkWaveLogic(in: geo.size)
+                checkWaveLogic()
             }
         }
     }
     
-    private func checkWaveLogic(in size: CGSize) {
-        guard !hasWon else { return }
-        
+    private func checkWaveLogic() {
+        // Look at all detected hands
         for hand in engine.hands {
-            let handX = (1 - hand.indexTip.x) * size.width
+            // Because the front camera is a mirror, we invert the X coordinate
+            let xPos = 1.0 - hand.indexTip.x
             
-            if currentSide == .left {
-                if handX < (size.width * zoneWidthPercentage) {
-                    triggerHit(nextSide: .right)
-                    break
-                }
-            } else {
-                if handX > (size.width * (1.0 - zoneWidthPercentage)) {
-                    triggerHit(nextSide: .left)
-                    break
-                }
+            // Check if hand entered the active target zone
+            if currentSide == .left && xPos < 0.35 {
+                triggerHit(nextSide: .right)
+                break // Stop checking other hands this frame to prevent double-hits
+            } else if currentSide == .right && xPos > 0.65 {
+                triggerHit(nextSide: .left)
+                break
             }
         }
     }
     
     private func triggerHit(nextSide: PartySide) {
-        // sound
+        // 🔊 Play the whoosh instantly
         AudioManager.shared.playSFX("whoosh")
         
+        // 1. Instantly swap the target side so they have to wave back
         currentSide = nextSide
+        
+        // 2. Add points!
         hits += 1
         score += 20
-        bgColor = partyColors.randomElement() ?? .purple
         
-        if hits >= requiredHits {
-            hasWon = true
-            bgColor = .green
-            score += 50
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                onComplete(true)
-                hits = 0
-                currentSide = .left
-                bgColor = .black
-                hasWon = false
-            }
+        // 3. Disco Lighting! Flash a random neon color, then fade back to black
+        let newColor = partyColors.randomElement() ?? .purple
+        withAnimation(.easeIn(duration: 0.05)) {
+            bgColor = newColor
+        }
+        withAnimation(.easeOut(duration: 0.3).delay(0.05)) {
+            bgColor = .black
         }
     }
 }
 
-struct PartyTileView: View {
-    var text: String
-    var body: some View {
-        ZStack {
-            Rectangle()
-                .fill(Color.white.opacity(0.15))
-                .border(Color.white, width: 3)
-            
-            Text(text)
-                .font(.largeTitle.bold())
-                .foregroundColor(.white)
-        }
-        .background(VisualEffectView(material: .hudWindow, blendingMode: .withinWindow))
+// 🔧 PREVIEW SUPPORT
+struct PartyScene_Previews: PreviewProvider {
+    static var previews: some View {
+        PartyScene(
+            engine: TrackingEngine(),
+            score: .constant(100),
+            onComplete: { _ in }
+        )
+        .background(Color.black)
     }
-}
-
-// 🔧 RESTORED MISSING CODE: The Frosted Glass Helper
-struct VisualEffectView: NSViewRepresentable {
-    let material: NSVisualEffectView.Material
-    let blendingMode: NSVisualEffectView.BlendingMode
-    
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = material
-        view.blendingMode = blendingMode
-        view.state = .active
-        return view
-    }
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }

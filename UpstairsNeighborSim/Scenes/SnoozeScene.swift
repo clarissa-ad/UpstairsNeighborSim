@@ -1,141 +1,145 @@
 import SwiftUI
 
+// 1. The Dynamic Alarm Model
 struct AlarmTarget: Identifiable {
     let id = UUID()
     var x: CGFloat
     var y: CGFloat
+    var radius: CGFloat // 🔧 NEW: Every alarm has a random size!
     var isSnoozed: Bool = false
 }
 
 struct SnoozeScene: View {
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
-    var onComplete: (Bool) -> Void
+    var onComplete: (Bool) -> Void // Kept for the GamePageView contract
     
-    // 🔧 Game State
+    // 🔧 Infinite Game State
     @State private var alarms: [AlarmTarget] = []
-    @State private var hasWon: Bool = false
-    @State private var currentMiniRound: Int = 1 // Tracks which of the 4 rounds we are in
+    @State private var totalSnoozes: Int = 0
     
-    // 📐 Progressive Difficulty Math (Radius in pixels)
-    // Round 1: 70px (Huge) -> Round 4: 25px (Tiny!)
-    let roundThresholds: [CGFloat] = [70, 55, 40, 25]
-    let requiredAlarms: Int = 3
-    
-    // Safely gets the current threshold based on the round
-    var currentThreshold: CGFloat {
-        let index = min(currentMiniRound - 1, roundThresholds.count - 1)
-        return roundThresholds[index]
-    }
+    // How many alarms should be on screen at the exact same time?
+    let maxAlarmsOnScreen = 4
     
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                // 1. Background Text (Now shows the current level!)
+                // 1. Background HUD
                 VStack {
-                    Text(hasWon ? "SILENCE..." : "SNOOZE! (Lvl \(currentMiniRound))")
-                        .font(.system(size: 60, weight: .black, design: .rounded))
-                        .foregroundColor(hasWon ? .green : .white)
+                    Text("MATIKAN ALARM!")
+                        .font(.system(size: 50, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
                         .shadow(color: .blue, radius: 10)
+                    
+                    Text("SNOOZES: \(totalSnoozes)!")
+                        .font(.title.bold())
+                        .foregroundColor(.yellow)
+                    
                     Spacer()
-                }.padding(40)
+                }
+                .padding(40)
+                .zIndex(2) // Keep text on top
                 
-                // 2. Draw the Dynamic Alarms
+                // 2. Draw the Alarms
                 ForEach(alarms) { alarm in
-                    if !alarm.isSnoozed {
-                        ZStack {
-                            Circle()
-                                .fill(Color.red)
-                                // 🔧 VISUAL SCALING: The physical diameter shrinks alongside the math!
-                                .frame(width: currentThreshold * 2, height: currentThreshold * 2)
-                            
-                            Image(systemName: "alarm.fill")
-                                // The icon shrinks too
-                                .font(.system(size: currentThreshold * 0.8))
-                                .foregroundColor(.white)
-                        }
-                        .position(x: alarm.x * geo.size.width, y: alarm.y * geo.size.height)
-                        .modifier(ShakeEffect(animatableData: CGFloat.random(in: 0...1) > 0.5 ? 1 : 0))
-                        .animation(.default.repeatForever(autoreverses: true).speed(4), value: alarm.isSnoozed)
+                    ZStack {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: alarm.radius * 2, height: alarm.radius * 2)
+                            .shadow(color: .black.opacity(0.5), radius: 5)
                         
-                    } else {
-                        Text("💤")
-                            .font(.system(size: currentThreshold)) // Zzz's match the size
-                            .position(x: alarm.x * geo.size.width, y: alarm.y * geo.size.height)
+                        Image(systemName: "alarm.fill")
+                            .font(.system(size: alarm.radius * 0.8))
+                            .foregroundColor(.white)
                     }
+                    .position(x: alarm.x * geo.size.width, y: alarm.y * geo.size.height)
+                    // The shake animation makes them look highly annoying
+                    .modifier(ShakeEffect(animatableData: CGFloat.random(in: 0...1) > 0.5 ? 1 : 0))
+                    .animation(.default.repeatForever(autoreverses: true).speed(4), value: alarm.isSnoozed)
                 }
             }
-            .onAppear { setupAlarms() }
+            .onAppear {
+                // Spawn the initial batch of alarms
+                for _ in 0..<maxAlarmsOnScreen {
+                    alarms.append(generateRandomAlarm())
+                }
+            }
             .onChange(of: engine.hands) {
                 checkTaps(in: geo.size)
             }
         }
     }
     
-    private func setupAlarms() {
-        hasWon = false
-        alarms = (0..<requiredAlarms).map { _ in
-            AlarmTarget(
-                x: CGFloat.random(in: 0.2...0.8),
-                y: CGFloat.random(in: 0.3...0.8)
-            )
-        }
+    // 🔧 Helper: Spawns an alarm anywhere, at any size
+    private func generateRandomAlarm() -> AlarmTarget {
+        return AlarmTarget(
+            x: CGFloat.random(in: 0.15...0.85), // Keep away from extreme edges
+            y: CGFloat.random(in: 0.25...0.85),
+            radius: CGFloat.random(in: 30...70) // Tiny (30px) to Huge (70px)
+        )
     }
     
     private func checkTaps(in size: CGSize) {
-        guard !hasWon else { return }
-        
-        var snoozedSomethingThisFrame = false
+        var newAlarms = alarms // Copy the array to safely modify it
+        var snoozedCountThisFrame = 0
         
         for hand in engine.hands {
             let handX = (1 - hand.indexTip.x) * size.width
             let handY = (1 - hand.indexTip.y) * size.height
             
-            for i in alarms.indices {
-                guard !alarms[i].isSnoozed else { continue }
-                
-                let alarmX = alarms[i].x * size.width
-                let alarmY = alarms[i].y * size.height
+            // Check every alarm on screen
+            for i in newAlarms.indices {
+                let alarmX = newAlarms[i].x * size.width
+                let alarmY = newAlarms[i].y * size.height
                 let distance = hypot(handX - alarmX, handY - alarmY)
                 
-                // 🔧 HIT MATH: We now check against the dynamically shrinking threshold!
-                if distance < currentThreshold {
-                    AudioManager.shared.playSFX("snooze")
-                    alarms[i].isSnoozed = true
-                    score += 10
-                    snoozedSomethingThisFrame = true
+                // 🎯 HIT MATH: Did the hand touch this specific alarm's random radius?
+                if distance < newAlarms[i].radius && !newAlarms[i].isSnoozed {
+                    newAlarms[i].isSnoozed = true
+                    snoozedCountThisFrame += 1
                 }
             }
         }
         
-        // 5. Check Win Condition
-        if snoozedSomethingThisFrame {
-            if alarms.allSatisfy({ $0.isSnoozed }) {
-                hasWon = true
+        // If we successfully hit something this exact frame...
+        if snoozedCountThisFrame > 0 {
+            AudioManager.shared.playSFX("snooze")
+            
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                totalSnoozes += snoozedCountThisFrame
+                score += (10 * snoozedCountThisFrame)
                 
-                if currentMiniRound < 4 {
-                    // 📈 ADVANCE LEVEL: Spawn smaller alarms quickly!
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        currentMiniRound += 1
-                        setupAlarms()
-                    }
-                } else {
-                    // 🏆 CARTRIDGE COMPLETE: Tell the sandbox we won 4 rounds!
-                    score += 50
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        onComplete(true)
-                        currentMiniRound = 1 // Reset back to massive Level 1
-                        setupAlarms()
-                    }
+                // 1. Delete the alarms we just hit
+                newAlarms.removeAll { $0.isSnoozed }
+                
+                // 2. Instantly spawn new ones to replace them!
+                for _ in 0..<snoozedCountThisFrame {
+                    newAlarms.append(generateRandomAlarm())
                 }
+                
+                // 3. Update the screen
+                alarms = newAlarms
             }
         }
     }
 }
 
+// 🔧 Required for the Shake Animation
 struct ShakeEffect: GeometryEffect {
     var animatableData: CGFloat
     func effectValue(size: CGSize) -> ProjectionTransform {
         ProjectionTransform(CGAffineTransform(translationX: 10 * sin(animatableData * .pi * 2), y: 0))
+    }
+}
+
+// 🔧 PREVIEW SUPPORT
+struct SnoozeScene_Previews: PreviewProvider {
+    static var previews: some View {
+        SnoozeScene(
+            engine: TrackingEngine(),
+            score: .constant(0),
+            onComplete: { _ in }
+        )
+        .background(Color.black)
     }
 }
