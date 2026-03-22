@@ -39,15 +39,24 @@ class GameDirector: ObservableObject {
     
     // 🔧 SEQUENCE SETTINGS
     @Published var isSequenceComplete: Bool = false // Tells the View when the whole game is over
-    let totalSequenceLength: Int = 5 // Configurable: 4 random games + 1 bonus = 5 total
+    var totalSequenceLength: Int = 5 // Configurable: 4 random games + 1 bonus = 5 total
     private var gamesPlayed: Int = 0 // Tracks how many games we've finished
     
     private var timerCancellable: AnyCancellable?
     
-    func start() {
+    // 🔧 FIX: Added 'rounds: Int = 5' to the parameters so the Main Menu can pass the number in!
+    func start(rounds: Int = 5) {
+        self.totalSequenceLength = rounds
+        self.gamesPlayed = 0
+        self.isSequenceComplete = false
+        pickNextActivity(isFirstRound: true)
+    }
+    
+    // 🔧 FIX: Safely kills the game when returning to the Main Menu
+    func resetToMenu() {
+        timerCancellable?.cancel()
         gamesPlayed = 0
         isSequenceComplete = false
-        pickNextActivity(isFirstRound: true)
     }
 
     func nextRound(success: Bool) {
