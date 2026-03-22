@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ResultsPageView: View {
     // 🔧 SUSTAINABLE DATA INJECTION
-    // The view just accepts these facts and doesn't care where they came from
     let p1Score: Int
     let p2Score: Int
     let isMultiplayer: Bool
@@ -18,8 +17,8 @@ struct ResultsPageView: View {
     
     var body: some View {
         ZStack {
-            // 1. Background
-            Color.black.ignoresSafeArea()
+            // 1. FIX: Semi-transparent background so the camera shows through!
+            Color.black.opacity(0.8).ignoresSafeArea()
             
             VStack(spacing: 40) {
                 
@@ -40,7 +39,6 @@ struct ResultsPageView: View {
                 
                 // 3. The Scoreboard (Adapts to Solo or VS Mode!)
                 HStack(spacing: 40) {
-                    // PLAYER 1 SCORECARD
                     ScoreCardView(
                         title: isMultiplayer ? "PLAYER 1" : "FINAL SCORE",
                         score: displayedP1Score,
@@ -48,7 +46,6 @@ struct ResultsPageView: View {
                         rank: calculateRank(score: p1Score)
                     )
                     
-                    // PLAYER 2 SCORECARD (Only shows in VS Mode)
                     if isMultiplayer {
                         ScoreCardView(
                             title: "PLAYER 2",
@@ -61,31 +58,32 @@ struct ResultsPageView: View {
                 
                 Spacer()
                 
-                // 4. Navigation Buttons (Fades in after scores tally)
-                if showButtons {
-                    VStack(spacing: 20) {
-                        Button(action: onRematch) {
-                            Text("🔄 PLAY AGAIN")
-                                .font(.title.bold())
-                                .foregroundColor(.white)
-                                .frame(maxWidth: 300)
-                                .padding()
-                                .background(Color.green)
-                                .cornerRadius(15)
-                        }
-                        
-                        Button(action: onMainMenu) {
-                            Text("🏠 MAIN MENU")
-                                .font(.title3.bold())
-                                .foregroundColor(.white)
-                                .frame(maxWidth: 300)
-                                .padding()
-                                .background(Color.gray.opacity(0.5))
-                                .cornerRadius(15)
-                        }
+                // 4. FIX: Use Opacity instead of an 'if' statement.
+                // This guarantees the button hitboxes work perfectly every time.
+                VStack(spacing: 20) {
+                    Button(action: onRematch) {
+                        Text("🔄 PLAY AGAIN")
+                            .font(.title.bold())
+                            .foregroundColor(.white)
+                            .frame(maxWidth: 300)
+                            .padding()
+                            .background(Color.green)
+                            .cornerRadius(15)
                     }
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    
+                    Button(action: onMainMenu) {
+                        Text("🏠 MAIN MENU")
+                            .font(.title3.bold())
+                            .foregroundColor(.white)
+                            .frame(maxWidth: 300)
+                            .padding()
+                            .background(Color.gray.opacity(0.5))
+                            .cornerRadius(15)
+                    }
                 }
+                .opacity(showButtons ? 1.0 : 0.0)
+                .offset(y: showButtons ? 0 : 20) // Slides up smoothly
+                .animation(.spring(response: 0.5, dampingFraction: 0.7), value: showButtons)
                 
                 Spacer()
             }
@@ -95,7 +93,6 @@ struct ResultsPageView: View {
         }
     }
     
-    // 🧠 HELPER: Determines the winner text
     private func getWinnerText() -> String {
         if !isMultiplayer { return "THE NEIGHBORS HATE YOU." }
         if p1Score > p2Score { return "PLAYER 1 IS THE WORST NEIGHBOR!" }
@@ -103,7 +100,6 @@ struct ResultsPageView: View {
         return "IT'S A TIE! EVERYONE LOSES!"
     }
     
-    // 🧠 HELPER: Gives them a funny title based on their score
     private func calculateRank(score: Int) -> String {
         switch score {
         case 0...200: return "Polite Ghost 👻"
@@ -113,9 +109,7 @@ struct ResultsPageView: View {
         }
     }
     
-    // 🎬 HELPER: The Tally Animation
     private func animateScores() {
-        // Play a drumroll sound here!
         AudioManager.shared.playSFX("drumroll")
         
         withAnimation(.easeOut(duration: 2.0)) {
@@ -123,18 +117,13 @@ struct ResultsPageView: View {
             displayedP2Score = p2Score
         }
         
-        // Show the buttons after the score finishes counting up
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            withAnimation(.spring()) {
-                showButtons = true
-                // Play a crash/cheer sound here!
-                AudioManager.shared.playSFX("cymbals")
-            }
+            showButtons = true
+            AudioManager.shared.playSFX("cymbals")
         }
     }
 }
 
-// 🏗️ SUB-VIEW: Keeps the code clean and reusable
 struct ScoreCardView: View {
     let title: String
     let score: Int
@@ -150,7 +139,6 @@ struct ScoreCardView: View {
             Text("\(score)")
                 .font(.system(size: 70, weight: .black, design: .monospaced))
                 .foregroundColor(color)
-                // Adds a cool glow effect
                 .shadow(color: color.opacity(0.5), radius: 10)
             
             Text(rank)
@@ -168,7 +156,6 @@ struct ScoreCardView: View {
     }
 }
 
-// 🔧 PREVIEW SUPPORT
 struct ResultsPageView_Previews: PreviewProvider {
     static var previews: some View {
         ResultsPageView(

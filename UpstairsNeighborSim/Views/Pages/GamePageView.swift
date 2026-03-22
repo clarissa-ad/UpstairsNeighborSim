@@ -24,10 +24,7 @@ struct GamePageView: View {
                     p2Score: p2Score,
                     isMultiplayer: isMultiplayer,
                     onRematch: resetGame,
-                    onMainMenu: {
-                        // For now, just print. Later, this will dismiss back to the Main Menu!
-                        print("Return to Main Menu")
-                    }
+                    onMainMenu: onReturnToMenu
                 )
                 
             } else {

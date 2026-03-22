@@ -28,11 +28,19 @@ struct ContentView: View {
                         Group {
                             switch currentState {
                             case .intro:
-                                StartPageView(engine: engine, onStart: {
-                                    currentState = .playingSolo // Default to Solo for now
-                                }, onDebug: {
-                                    currentState = .debug
-                                })
+                                // 🏠 NEW: The Main Menu handles all routing!
+                                MainMenuView(
+                                    engine: engine,
+                                    onPlaySolo: {
+                                        currentState = .playingSolo
+                                    },
+                                    onPlayVS: {
+                                        currentState = .playingVS
+                                    },
+                                    onDebug: {
+                                        currentState = .debug
+                                    }
+                                )
                                 
                             case .playingSolo:
                                 GamePageView(engine: engine, isMultiplayer: false) {
