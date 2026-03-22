@@ -5,12 +5,10 @@ import Combine
 enum MiniGame: CaseIterable {
     case stomp, snooze, party, dj, cymbals, bonus
     
-    // 🔧 THE FIX: A specific pool of games that excludes the Bonus Stage
     static var normalGames: [MiniGame] {
         return [.stomp, .snooze, .party, .dj, .cymbals]
     }
     
-    // Instruction text that appears in the HUD
     var instruction: String {
         switch self {
         case .stomp: return "STOMP!"
@@ -22,7 +20,6 @@ enum MiniGame: CaseIterable {
         }
     }
     
-    // The specific time limit for each game
     var timeLimit: Double {
         switch self {
         case .snooze: return 7.0
@@ -38,56 +35,68 @@ class GameDirector: ObservableObject {
     @Published var timeRemaining: Double = 5.0
     
     // 🔧 SEQUENCE SETTINGS
-    @Published var isSequenceComplete: Bool = false // Tells the View when the whole game is over
-    var totalSequenceLength: Int = 5 // Configurable: 4 random games + 1 bonus = 5 total
-    private var gamesPlayed: Int = 0 // Tracks how many games we've finished
+    @Published var isSequenceComplete: Bool = false
+    @Published var isPaused: Bool = false // ⏸️ NEW: Tracks if the game is paused
+    var totalSequenceLength: Int = 5
+    private var gamesPlayed: Int = 0
     
     private var timerCancellable: AnyCancellable?
     
-    // 🔧 FIX: Added 'rounds: Int = 5' to the parameters so the Main Menu can pass the number in!
     func start(rounds: Int = 5) {
         self.totalSequenceLength = rounds
         self.gamesPlayed = 0
         self.isSequenceComplete = false
+        self.isPaused = false
         pickNextActivity(isFirstRound: true)
     }
     
-    // 🔧 FIX: Safely kills the game when returning to the Main Menu
+    // ⏸️ NEW: Pause functionality
+    func pauseTimer() {
+        isPaused = true
+        timerCancellable?.cancel()
+    }
+    
+    // ▶️ NEW: Resume functionality
+    func resumeTimer() {
+        isPaused = false
+        startTimer() // Restarts the clock from where it left off
+    }
+    
+    // 🛑 NEW: Forces the game to end and jump to the scoreboard
+    func forceEndGame() {
+        timerCancellable?.cancel()
+        isPaused = false
+        isSequenceComplete = true
+    }
+    
     func resetToMenu() {
         timerCancellable?.cancel()
         gamesPlayed = 0
         isSequenceComplete = false
+        isPaused = false
     }
 
     func nextRound(success: Bool) {
         timerCancellable?.cancel()
-        
-        // We just finished a game, so add 1 to the counter
         gamesPlayed += 1
-        
         pickNextActivity()
     }
 
     func pickNextActivity(isFirstRound: Bool = false) {
-        
-        // 🛑 STEP 1: Check if the sequence is completely over (Bonus is done)
         if gamesPlayed >= totalSequenceLength {
             isSequenceComplete = true
             timerCancellable?.cancel()
-            return // Stop generating new games!
+            return
         }
         
-        // 🎁 STEP 2: Check if it's time for the Bonus Stage (The final game)
         if gamesPlayed == (totalSequenceLength - 1) {
             currentGame = .bonus
             timeRemaining = currentGame.timeLimit
             startTimer()
-            return // Skip the random picking
+            return
         }
         
-        // 🎲 STEP 3: Otherwise, pick a normal random game
         var nextGame = MiniGame.normalGames.randomElement() ?? .stomp
-        
         if !isFirstRound {
             while nextGame == currentGame {
                 nextGame = MiniGame.normalGames.randomElement() ?? .stomp
@@ -96,19 +105,16 @@ class GameDirector: ObservableObject {
         
         currentGame = nextGame
         timeRemaining = nextGame.timeLimit
-        
         startTimer()
     }
 
     private func startTimer() {
         timerCancellable?.cancel()
-        
         timerCancellable = Timer.publish(every: 0.1, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 guard let self = self else { return }
                 self.timeRemaining -= 0.1
-                
                 if self.timeRemaining <= 0 {
                     self.nextRound(success: false)
                 }

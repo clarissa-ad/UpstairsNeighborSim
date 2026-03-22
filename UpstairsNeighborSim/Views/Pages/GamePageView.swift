@@ -1,24 +1,21 @@
 import SwiftUI
 
 struct GamePageView: View {
-    // accepts the engine from content view, not making a new one
     @ObservedObject var engine: TrackingEngine
     @StateObject private var director = GameDirector()
     
-    // ⚙️ Game Settings (These will eventually be passed in from your Main Menu)
     var isMultiplayer: Bool
-    var onReturnToMenu: () -> Void // Tells ContentView to go back to the start screen
+    var onReturnToMenu: () -> Void
     
-    // 🏆 Global Score Trackers
+    // These variables ALREADY track the total overall score!
     @State private var p1Score: Int = 0
     @State private var p2Score: Int = 0
     
     var body: some View {
         ZStack {
-            // 🚦 TRAFFIC CONTROLLER: Which screen should we show?
+            // 🚦 TRAFFIC CONTROLLER
             if director.isSequenceComplete {
-                
-                // 🏁 STATE B: THE GAME IS OVER -> Show Results
+                // 🏁 STATE B: THE GAME IS OVER
                 ResultsPageView(
                     p1Score: p1Score,
                     p2Score: p2Score,
@@ -26,101 +23,178 @@ struct GamePageView: View {
                     onRematch: resetGame,
                     onMainMenu: onReturnToMenu
                 )
-                
             } else {
-                
-                // 🎮 STATE A: THE GAME IS RUNNING -> Show the active games!
+                // 🎮 STATE A: THE GAME IS RUNNING
                 if isMultiplayer {
-                    // ⚔️ SPLIT SCREEN
                     HStack(spacing: 0) {
                         ZStack {
                             Color.blue.opacity(0.15).ignoresSafeArea()
                             renderActiveGame(score: $p1Score, zone: .leftPlayer)
                         }
-                        
                         Rectangle().fill(Color.white).frame(width: 4).ignoresSafeArea()
-                        
                         ZStack {
                             Color.red.opacity(0.15).ignoresSafeArea()
                             renderActiveGame(score: $p2Score, zone: .rightPlayer)
                         }
                     }
                 } else {
-                    // 🧍‍♂️ SOLO MODE
                     renderActiveGame(score: $p1Score, zone: .solo)
                 }
                 
-                // ⏱️ THE HUD: Show instructions and the master clock on top of everything!
+                // ⏱️ THE HUD
                 gameHUD
+                
+                // ⏸️ THE PAUSE MENU
+                if director.isPaused {
+                    pauseMenuOverlay
+                }
             }
         }
         .onAppear {
-            // Start the sequence the moment this screen loads
             director.start()
-            // Make sure your engine starts its camera session here if it requires a manual start!
         }
     }
     
-    // 🏗️ HELPER 1: The Switchboard (Exactly like the Practice Gym!)
+    // 🏗️ HELPER 1: The Switchboard
     @ViewBuilder
     private func renderActiveGame(score: Binding<Int>, zone: PlayerZone) -> some View {
-        // Notice that onComplete does nothing `{ _ in }`.
-        // Because of your Infinite Score Attack upgrade, the GameDirector's timer
-        // is the ONLY thing allowed to change the game!
         switch director.currentGame {
-        case .stomp:
-            StompScene(engine: engine, score: score, playerZone: zone) { _ in }
-        case .snooze:
-            SnoozeScene(engine: engine, score: score, playerZone: zone) { _ in }
-        case .party:
-            PartyScene(engine: engine, score: score, playerZone: zone) { _ in }
-        case .dj:
-            DJScene(engine: engine, score: score, playerZone: zone) { _ in }
-        case .cymbals:
-            CymbalScene(engine: engine, score: score, playerZone: zone) { _ in }
-        case .bonus:
-            BonusScene(engine: engine, score: score, playerZone: zone) { _ in }
+        case .stomp: StompScene(engine: engine, score: score, playerZone: zone) { _ in }
+        case .snooze: SnoozeScene(engine: engine, score: score, playerZone: zone) { _ in }
+        case .party: PartyScene(engine: engine, score: score, playerZone: zone) { _ in }
+        case .dj: DJScene(engine: engine, score: score, playerZone: zone) { _ in }
+        case .cymbals: CymbalScene(engine: engine, score: score, playerZone: zone) { _ in }
+        case .bonus: BonusScene(engine: engine, score: score, playerZone: zone) { _ in }
         }
     }
     
-    // ⏱️ HELPER 2: The Heads Up Display (Instructions & Timer)
+    // ⏱️ HELPER 2: The Redesigned Heads Up Display
     private var gameHUD: some View {
-        VStack {
-            // Instructions
-            Text(director.currentGame.instruction)
-                .font(.system(size: 60, weight: .black, design: .rounded))
-                .foregroundColor(.white)
-                .shadow(color: .black, radius: 5)
-                .padding(.top, 50)
+        VStack(spacing: 0) {
+            // TOP BAR: Scores, Instruction & Pause Button
+            ZStack(alignment: .top) {
+                
+                // CENTER: The Current Game Instruction
+                Text(director.currentGame.instruction)
+                    .font(.system(size: 50, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+                    .shadow(color: .black, radius: 5)
+                
+                // SIDES: Scoreboard (Left) and Pause (Right)
+                HStack(alignment: .top) {
+                    
+                    // 🏆 NEW: THE SCORE TRACKER
+                    VStack(alignment: .leading, spacing: 5) {
+                        if isMultiplayer {
+                            Text("P1: \(p1Score)")
+                                .foregroundColor(.blue)
+                            Text("P2: \(p2Score)")
+                                .foregroundColor(.red)
+                        } else {
+                            Text("TOTAL: \(p1Score)")
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .font(.title2.bold().monospaced())
+                    .padding(12)
+                    .background(Color.black.opacity(0.6))
+                    .cornerRadius(10)
+                    
+                    Spacer()
+                    
+                    // ⏸️ PAUSE BUTTON
+                    Button(action: { director.pauseTimer() }) {
+                        Image(systemName: "pause.circle.fill")
+                            .font(.system(size: 45))
+                            .foregroundColor(.white)
+                            .shadow(color: .black.opacity(0.5), radius: 5)
+                    }
+                }
+            }
+            .padding(.horizontal, 30)
+            .padding(.top, 20)
             
-            // The Master Clock
-            Text(String(format: "%.1f", director.timeRemaining))
-                .font(.system(size: 80, weight: .black, design: .monospaced))
-                .foregroundColor(director.timeRemaining <= 2.0 ? .red : .white)
-                .shadow(color: .black, radius: 5)
-                // Add a heartbeat pulse when time is running out
-                .scaleEffect(director.timeRemaining <= 2.0 ? 1.1 : 1.0)
-                .animation(.linear(duration: 0.2).repeatForever(), value: director.timeRemaining <= 2.0)
+            // TIMER PROGRESS BAR
+            GeometryReader { barGeo in
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.black.opacity(0.5))
+                        .cornerRadius(6)
+                    
+                    Rectangle()
+                        .fill(director.timeRemaining <= 2.0 ? Color.red : Color.green)
+                        .cornerRadius(6)
+                        .frame(width: max(0, barGeo.size.width * (director.timeRemaining / director.currentGame.timeLimit)))
+                        .animation(.linear(duration: 0.1), value: director.timeRemaining)
+                }
+            }
+            .frame(height: 12)
+            .padding(.horizontal, 30)
+            .padding(.top, 10)
             
             Spacer()
+            
+            // BOTTOM RIGHT COUNTER
+            HStack {
+                Spacer()
+                Text(String(format: "%.1f", max(0, director.timeRemaining)))
+                    .font(.system(size: 30, weight: .bold, design: .monospaced))
+                    .foregroundColor(director.timeRemaining <= 2.0 ? .red : .white)
+                    .padding(.horizontal, 15)
+                    .padding(.vertical, 8)
+                    .background(Color.black.opacity(0.6))
+                    .cornerRadius(10)
+                    .padding(.trailing, 30)
+                    .padding(.bottom, 30)
+            }
         }
-        // Ignores safe area so it can float over the top of the screen cleanly
-        .ignoresSafeArea()
     }
     
-    // 🔄 HELPER 3: The Reset Button Logic
+    // ⏸️ HELPER 3: The Pause Menu
+    private var pauseMenuOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.85).ignoresSafeArea()
+            
+            VStack(spacing: 30) {
+                Text("PAUSED")
+                    .font(.system(size: 60, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(.bottom, 20)
+                
+                Button(action: { director.resumeTimer() }) {
+                    Text("▶️ RESUME")
+                        .font(.title.bold())
+                        .foregroundColor(.white)
+                        .frame(width: 250)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(15)
+                }
+                
+                Button(action: { director.forceEndGame() }) {
+                    Text("🛑 END GAME")
+                        .font(.title.bold())
+                        .foregroundColor(.white)
+                        .frame(width: 250)
+                        .padding()
+                        .background(Color.red)
+                        .cornerRadius(15)
+                }
+            }
+        }
+    }
+    
+    // 🔄 HELPER 4: The Reset Button Logic
     private func resetGame() {
         p1Score = 0
         p2Score = 0
-        director.start() // Tells the referee to reset the sequence and start the clock again
+        director.start()
     }
 }
 
 // 🔧 PREVIEW
 struct GamePageView_Previews: PreviewProvider {
     static var previews: some View {
-        GamePageView(engine: TrackingEngine(), isMultiplayer: true, onReturnToMenu: {
-            print ("Preview: Returned to Menu")
-        })
+        GamePageView(engine: TrackingEngine(), isMultiplayer: true, onReturnToMenu: {})
     }
 }
