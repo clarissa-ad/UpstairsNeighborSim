@@ -5,6 +5,11 @@ import Combine
 enum MiniGame: CaseIterable {
     case stomp, snooze, party, dj, cymbals, bonus
     
+    // 🔧 THE FIX: A specific pool of games that excludes the Bonus Stage
+    static var normalGames: [MiniGame] {
+        return [.stomp, .snooze, .party, .dj, .cymbals]
+    }
+    
     // Instruction text that appears in the HUD
     var instruction: String {
         switch self {
@@ -32,23 +37,51 @@ class GameDirector: ObservableObject {
     @Published var currentGame: MiniGame = .stomp
     @Published var timeRemaining: Double = 5.0
     
+    // 🔧 SEQUENCE SETTINGS
+    @Published var isSequenceComplete: Bool = false // Tells the View when the whole game is over
+    let totalSequenceLength: Int = 5 // Configurable: 4 random games + 1 bonus = 5 total
+    private var gamesPlayed: Int = 0 // Tracks how many games we've finished
+    
     private var timerCancellable: AnyCancellable?
     
     func start() {
+        gamesPlayed = 0
+        isSequenceComplete = false
         pickNextActivity(isFirstRound: true)
     }
 
     func nextRound(success: Bool) {
         timerCancellable?.cancel()
+        
+        // We just finished a game, so add 1 to the counter
+        gamesPlayed += 1
+        
         pickNextActivity()
     }
 
     func pickNextActivity(isFirstRound: Bool = false) {
-        var nextGame = MiniGame.allCases.randomElement() ?? .stomp
+        
+        // 🛑 STEP 1: Check if the sequence is completely over (Bonus is done)
+        if gamesPlayed >= totalSequenceLength {
+            isSequenceComplete = true
+            timerCancellable?.cancel()
+            return // Stop generating new games!
+        }
+        
+        // 🎁 STEP 2: Check if it's time for the Bonus Stage (The final game)
+        if gamesPlayed == (totalSequenceLength - 1) {
+            currentGame = .bonus
+            timeRemaining = currentGame.timeLimit
+            startTimer()
+            return // Skip the random picking
+        }
+        
+        // 🎲 STEP 3: Otherwise, pick a normal random game
+        var nextGame = MiniGame.normalGames.randomElement() ?? .stomp
         
         if !isFirstRound {
             while nextGame == currentGame {
-                nextGame = MiniGame.allCases.randomElement() ?? .stomp
+                nextGame = MiniGame.normalGames.randomElement() ?? .stomp
             }
         }
         
