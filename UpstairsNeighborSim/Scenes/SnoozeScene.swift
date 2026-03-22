@@ -5,20 +5,22 @@ struct AlarmTarget: Identifiable {
     let id = UUID()
     var x: CGFloat
     var y: CGFloat
-    var radius: CGFloat // 🔧 NEW: Every alarm has a random size!
+    var radius: CGFloat
     var isSnoozed: Bool = false
 }
 
 struct SnoozeScene: View {
+    // 🔧 STANDARD CONTRACT (Order matters!)
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
-    var onComplete: (Bool) -> Void // Kept for the GamePageView contract
+    var playerZone: PlayerZone = .solo
+    var onComplete: (Bool) -> Void
     
     // 🔧 Infinite Game State
     @State private var alarms: [AlarmTarget] = []
     @State private var totalSnoozes: Int = 0
+    @State private var isShaking: Bool = false // 🔧 NEW: Much smoother animation state
     
-    // How many alarms should be on screen at the exact same time?
     let maxAlarmsOnScreen = 4
     
     var body: some View {
@@ -26,7 +28,7 @@ struct SnoozeScene: View {
             ZStack {
                 // 1. Background HUD
                 VStack {
-                    Text("MATIKAN ALARM!")
+                    Text("MATIKAN!")
                         .font(.system(size: 50, weight: .black, design: .rounded))
                         .foregroundColor(.white)
                         .shadow(color: .blue, radius: 10)
@@ -38,7 +40,7 @@ struct SnoozeScene: View {
                     Spacer()
                 }
                 .padding(40)
-                .zIndex(2) // Keep text on top
+                .zIndex(2)
                 
                 // 2. Draw the Alarms
                 ForEach(alarms) { alarm in
@@ -53,13 +55,16 @@ struct SnoozeScene: View {
                             .foregroundColor(.white)
                     }
                     .position(x: alarm.x * geo.size.width, y: alarm.y * geo.size.height)
-                    // The shake animation makes them look highly annoying
-                    .modifier(ShakeEffect(animatableData: CGFloat.random(in: 0...1) > 0.5 ? 1 : 0))
-                    .animation(.default.repeatForever(autoreverses: true).speed(4), value: alarm.isSnoozed)
+                    // 🔧 NEW: A much cleaner, crash-proof shake animation
+                    .rotationEffect(.degrees(isShaking ? 5 : -5))
+                    .animation(
+                        .easeInOut(duration: 0.1).repeatForever(autoreverses: true),
+                        value: isShaking
+                    )
                 }
             }
             .onAppear {
-                // Spawn the initial batch of alarms
+                isShaking = true // Start the shake instantly
                 for _ in 0..<maxAlarmsOnScreen {
                     alarms.append(generateRandomAlarm())
                 }
@@ -70,38 +75,44 @@ struct SnoozeScene: View {
         }
     }
     
-    // 🔧 Helper: Spawns an alarm anywhere, at any size
+    // 🔧 FIX 1: The "Safe Zone" Spawn
+    // We clamp the random generation closer to the center so hands don't clip out of the camera!
     private func generateRandomAlarm() -> AlarmTarget {
         return AlarmTarget(
-            x: CGFloat.random(in: 0.15...0.85), // Keep away from extreme edges
-            y: CGFloat.random(in: 0.25...0.85),
-            radius: CGFloat.random(in: 30...70) // Tiny (30px) to Huge (70px)
+            x: CGFloat.random(in: 0.20...0.80),
+            y: CGFloat.random(in: 0.30...0.70),
+            radius: CGFloat.random(in: 35...65)
         )
     }
     
     private func checkTaps(in size: CGSize) {
-        var newAlarms = alarms // Copy the array to safely modify it
+        // 🛑 FIX 2: MULTIPLAYER FILTER
+        let validHands = engine.hands.filter {
+            CoordinateMapper.belongsToZone(rawX: $0.indexTip.x, zone: playerZone)
+        }
+        
+        var newAlarms = alarms
         var snoozedCountThisFrame = 0
         
-        for hand in engine.hands {
-            let handX = (1 - hand.indexTip.x) * size.width
-            let handY = (1 - hand.indexTip.y) * size.height
+        for hand in validHands {
+            // 🎯 FIX 3: THE UNIVERSAL LENS
+            let handPoint = CoordinateMapper.localPoint(rawPoint: hand.indexTip, zone: playerZone, screenSize: size)
             
-            // Check every alarm on screen
             for i in newAlarms.indices {
                 let alarmX = newAlarms[i].x * size.width
                 let alarmY = newAlarms[i].y * size.height
-                let distance = hypot(handX - alarmX, handY - alarmY)
+                let distance = hypot(handPoint.x - alarmX, handPoint.y - alarmY)
                 
-                // 🎯 HIT MATH: Did the hand touch this specific alarm's random radius?
-                if distance < newAlarms[i].radius && !newAlarms[i].isSnoozed {
+                // 💡 FIX 4: The Hitbox Buffer!
+                // We add 40 invisible pixels of forgiveness to the radius so fast swipes register.
+                if distance < (newAlarms[i].radius + 40) && !newAlarms[i].isSnoozed {
                     newAlarms[i].isSnoozed = true
                     snoozedCountThisFrame += 1
                 }
             }
         }
         
-        // If we successfully hit something this exact frame...
+        // If we successfully hit something...
         if snoozedCountThisFrame > 0 {
             AudioManager.shared.playSFX("snooze")
             
@@ -109,37 +120,21 @@ struct SnoozeScene: View {
                 totalSnoozes += snoozedCountThisFrame
                 score += (10 * snoozedCountThisFrame)
                 
-                // 1. Delete the alarms we just hit
                 newAlarms.removeAll { $0.isSnoozed }
                 
-                // 2. Instantly spawn new ones to replace them!
                 for _ in 0..<snoozedCountThisFrame {
                     newAlarms.append(generateRandomAlarm())
                 }
                 
-                // 3. Update the screen
                 alarms = newAlarms
             }
         }
     }
 }
 
-// 🔧 Required for the Shake Animation
-struct ShakeEffect: GeometryEffect {
-    var animatableData: CGFloat
-    func effectValue(size: CGSize) -> ProjectionTransform {
-        ProjectionTransform(CGAffineTransform(translationX: 10 * sin(animatableData * .pi * 2), y: 0))
-    }
-}
-
-// 🔧 PREVIEW SUPPORT
 struct SnoozeScene_Previews: PreviewProvider {
     static var previews: some View {
-        SnoozeScene(
-            engine: TrackingEngine(),
-            score: .constant(0),
-            onComplete: { _ in }
-        )
-        .background(Color.black)
+        SnoozeScene(engine: TrackingEngine(), score: .constant(0), onComplete: { _ in })
+            .background(Color.black)
     }
 }

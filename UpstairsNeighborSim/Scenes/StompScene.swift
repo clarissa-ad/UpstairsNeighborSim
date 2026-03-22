@@ -3,7 +3,8 @@ import SwiftUI
 struct StompScene: View {
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
-    var onComplete: (Bool) -> Void // Kept here so GamePageView doesn't break
+    var playerZone: PlayerZone = .solo
+    var onComplete: (Bool) -> Void
     
     // 🔧 Simplified Game State
     @State private var hitCount: Int = 0
@@ -59,10 +60,14 @@ struct StompScene: View {
     }
     
     private func checkStompLogic() {
+        // 🛑 1. FILTER: Ignore the other player's hands!
+        let validHands = engine.hands.filter { CoordinateMapper.belongsToZone(rawX: $0.indexTip.x, zone: playerZone) }
+        
         var lowestFingerY: CGFloat = 0.0
         var highestFingerY: CGFloat = 1.0
         
-        for hand in engine.hands {
+        // 2. Loop through validHands, NOT engine.hands
+        for hand in validHands {
             lowestFingerY = max(lowestFingerY, hand.indexTip.y)
             highestFingerY = min(highestFingerY, hand.indexTip.y)
         }

@@ -6,9 +6,11 @@ enum PartySide {
 }
 
 struct PartyScene: View {
+    // 🔧 STANDARD CONTRACT (Order matters!)
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
-    var onComplete: (Bool) -> Void // Kept so the GamePageView contract stays intact
+    var playerZone: PlayerZone = .solo
+    var onComplete: (Bool) -> Void
     
     // 🔧 Infinite Game State
     @State private var hits: Int = 0
@@ -31,7 +33,6 @@ struct PartyScene: View {
                         .foregroundColor(.white)
                         .shadow(color: .purple, radius: 10)
                         
-                    // 🔧 UPDATE: Uncapped wave counter!
                     Text("WAVES: \(hits)!")
                         .font(.title.bold())
                         .foregroundColor(.yellow)
@@ -66,24 +67,31 @@ struct PartyScene: View {
                         )
                 }
             }
-            // 4. The Logic Loop
+            // 4. The Logic Loop (Passing in geo.size for the math!)
             .onChange(of: engine.hands) {
-                checkWaveLogic()
+                checkWaveLogic(in: geo.size)
             }
         }
     }
     
-    private func checkWaveLogic() {
-        // Look at all detected hands
-        for hand in engine.hands {
-            // Because the front camera is a mirror, we invert the X coordinate
-            let xPos = 1.0 - hand.indexTip.x
+    private func checkWaveLogic(in size: CGSize) {
+        // 🛑 1. MULTIPLAYER FILTER: Ignore the other player's hands
+        let validHands = engine.hands.filter {
+            CoordinateMapper.belongsToZone(rawX: $0.indexTip.x, zone: playerZone)
+        }
+        
+        for hand in validHands {
+            // 🎯 2. UNIVERSAL LENS: Map the raw camera X to this specific UI view
+            let localPoint = CoordinateMapper.localPoint(rawPoint: hand.indexTip, zone: playerZone, screenSize: size)
             
-            // Check if hand entered the active target zone
-            if currentSide == .left && xPos < 0.35 {
+            // Convert pixels back to a percentage (0.0 to 1.0) for the local UI bounds
+            let localX = localPoint.x / size.width
+            
+            // 3. HIT DETECTION: Check if they reached the active 33% zone
+            if currentSide == .left && localX < 0.35 {
                 triggerHit(nextSide: .right)
                 break // Stop checking other hands this frame to prevent double-hits
-            } else if currentSide == .right && xPos > 0.65 {
+            } else if currentSide == .right && localX > 0.65 {
                 triggerHit(nextSide: .left)
                 break
             }
@@ -92,12 +100,12 @@ struct PartyScene: View {
     
     private func triggerHit(nextSide: PartySide) {
         // 🔊 Play the whoosh instantly
-        AudioManager.shared.playSFX("whoosh")
+        AudioManager.shared.playSFX("whoosh") // Or any fast swish sound
         
         // 1. Instantly swap the target side so they have to wave back
         currentSide = nextSide
         
-        // 2. Add points!
+        // 2. Add points! (Infinite Score Attack)
         hits += 1
         score += 20
         
@@ -115,11 +123,7 @@ struct PartyScene: View {
 // 🔧 PREVIEW SUPPORT
 struct PartyScene_Previews: PreviewProvider {
     static var previews: some View {
-        PartyScene(
-            engine: TrackingEngine(),
-            score: .constant(100),
-            onComplete: { _ in }
-        )
-        .background(Color.black)
+        PartyScene(engine: TrackingEngine(), score: .constant(100), onComplete: { _ in })
+            .background(Color.black)
     }
 }

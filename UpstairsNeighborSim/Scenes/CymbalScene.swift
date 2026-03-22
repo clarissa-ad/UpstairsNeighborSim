@@ -3,10 +3,8 @@ import SwiftUI
 struct CymbalScene: View {
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
-    var onComplete: (Bool) -> Void
-    
-    // 🔧 MULTIPLAYER CONTRACT: Default to solo so standard game doesn't break
     var playerZone: PlayerZone = .solo
+    var onComplete: (Bool) -> Void
     
     @State private var currentCrashes: Int = 0
     @State private var lastDistance: CGFloat = 1000
@@ -90,7 +88,7 @@ struct CymbalScene: View {
     
     private func triggerCrasherHit() {
         isClappedThisFrame = true
-        AudioManager.shared.playSFX("stomp")
+        AudioManager.shared.playSFX("cymbals")
         
         withAnimation(.easeIn(duration: 0.05)) {
             flashColor = .green.opacity(0.3)

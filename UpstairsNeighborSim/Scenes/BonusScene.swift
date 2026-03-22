@@ -3,6 +3,7 @@ import SwiftUI
 struct BonusScene: View {
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
+    var playerZone: PlayerZone = .solo
     var onComplete: (Bool) -> Void
     
     // 🔧 Game State
@@ -56,17 +57,19 @@ struct BonusScene: View {
     }
     
     private func checkAlternatingPump() {
-        guard engine.hands.count >= 2 else { return }
+        // 🛑 1. FILTER: Ignore the other player
+        let validHands = engine.hands.filter { CoordinateMapper.belongsToZone(rawX: $0.indexTip.x, zone: playerZone) }
         
-        let hand1 = engine.hands[0]
-        let hand2 = engine.hands[1]
+        // 2. Check validHands instead of engine.hands
+        guard validHands.count >= 2 else { return }
         
-        // 1. Figure out which hand is left and which is right
-        // (Vision camera is mirrored, so larger X is actually the left physical hand)
+        let hand1 = validHands[0]
+        let hand2 = validHands[1]
+        
         let leftHand = hand1.indexTip.x > hand2.indexTip.x ? hand1 : hand2
         let rightHand = hand1.indexTip.x > hand2.indexTip.x ? hand2 : hand1
         
-        // 2. Process Left Hand
+        // Process Left Hand
         if leftHand.indexTip.y < liftLine && leftIsDown {
             leftIsDown = false
             triggerPump()
@@ -74,7 +77,7 @@ struct BonusScene: View {
             leftIsDown = true
         }
         
-        // 3. Process Right Hand
+        // Process Right Hand
         if rightHand.indexTip.y < liftLine && rightIsDown {
             rightIsDown = false
             triggerPump()

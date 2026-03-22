@@ -1,27 +1,34 @@
 import SwiftUI
 
 struct DJScene: View {
+    // 🔧 STANDARD CONTRACT (Perfect order to avoid Xcode errors!)
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
+    var playerZone: PlayerZone = .solo
     var onComplete: (Bool) -> Void
     
     // 🔧 Game State
     @State private var hypeLevel: CGFloat = 0.0
     @State private var previousPositions: [CGFloat] = []
-    @State private var hasWon: Bool = false
+    @State private var dropCount: Int = 0 // Tracks how many times they filled the bar
+    @State private var isHandsPresent: Bool = false
     
-    // 📐 The Math: They must move their hands a combined total of 8 "screen widths"
-    let requiredHype: CGFloat = 8.0
+    // 📐 The Math: Lowered to 4.0 so they can trigger multiple "Drops" in the 5-second time limit!
+    let requiredHype: CGFloat = 4.0
     
     var body: some View {
         GeometryReader { geo in
             ZStack {
                 // 1. Instructions & Hype Meter
                 VStack {
-                    Text(hasWon ? "DROP THE BASS!" : "NGE-DJ!")
+                    Text("NGE-DJ!")
                         .font(.system(size: 60, weight: .black, design: .rounded))
-                        .foregroundColor(hasWon ? .green : .white)
+                        .foregroundColor(.white)
                         .shadow(color: .purple, radius: 10)
+                    
+                    Text("BEAT DROPS: \(dropCount)!")
+                        .font(.title.bold())
+                        .foregroundColor(.yellow)
                     
                     // The Hype Progress Bar
                     GeometryReader { barGeo in
@@ -41,7 +48,7 @@ struct DJScene: View {
                     .padding(.horizontal, 40)
                     
                     // Warning if hands are missing
-                    if engine.hands.count < 2 && !hasWon {
+                    if !isHandsPresent {
                         Text("⚠️ PUT BOTH HANDS UP! ⚠️")
                             .font(.title.bold())
                             .foregroundColor(.red)
@@ -54,8 +61,8 @@ struct DJScene: View {
                 
                 // 2. The Visual DJ Decks
                 HStack(spacing: geo.size.width * 0.2) {
-                    DJDeckView(hype: hypeLevel, isActive: engine.hands.count == 2)
-                    DJDeckView(hype: hypeLevel, isActive: engine.hands.count == 2)
+                    DJDeckView(hype: hypeLevel, isActive: isHandsPresent)
+                    DJDeckView(hype: hypeLevel, isActive: isHandsPresent)
                 }
                 .position(x: geo.size.width / 2, y: geo.size.height * 0.6)
             }
@@ -66,29 +73,34 @@ struct DJScene: View {
     }
     
     private func checkScratchLogic() {
-        guard !hasWon else { return }
+        // 🛑 MULTIPLAYER FILTER: Calculate this fresh every single frame!
+        let validHands = engine.hands.filter {
+            CoordinateMapper.belongsToZone(rawX: $0.indexTip.x, zone: playerZone)
+        }
         
-        // 🚨 STRICT RULE: Game pauses if 2 hands are not visible!
-        guard engine.hands.count == 2 else {
-            previousPositions = [] // Reset the math so it doesn't glitch when hands reappear
+        // Update UI state
+        isHandsPresent = (validHands.count >= 2)
+        
+        // 🚨 STRICT RULE: Math pauses if 2 hands are not visible on THEIR side
+        guard validHands.count >= 2 else {
+            previousPositions = [] // Reset the math so it doesn't glitch
             return
         }
         
         // 1. Get the X coordinates of both index fingers
-        // We SORT them so [0] is always the left hand, and [1] is always the right hand.
-        let currentPositions = engine.hands.map { $0.indexTip.x }.sorted()
+        let currentPositions = validHands.prefix(2).map { $0.indexTip.x }.sorted()
         
         if previousPositions.count == 2 {
-            // 2. Calculate "Delta" (How far did they move since the last millisecond?)
+            // 2. Calculate "Delta" (How far did they move?)
             let leftDelta = abs(currentPositions[0] - previousPositions[0])
             let rightDelta = abs(currentPositions[1] - previousPositions[1])
             
             // 3. Add movement to the Hype Meter!
             hypeLevel += (leftDelta + rightDelta)
             
-            // 4. Check Win Condition
+            // 4. Score Attack Loop! (No more 'hasWon' limits)
             if hypeLevel >= requiredHype {
-                triggerWin()
+                triggerBeatDrop()
             }
         }
         
@@ -96,16 +108,16 @@ struct DJScene: View {
         previousPositions = currentPositions
     }
     
-    private func triggerWin() {
-        hasWon = true
-        score += 50
+    private func triggerBeatDrop() {
+        // 🔊 Sound Effect
+        AudioManager.shared.playSFX("stomp") // Or whatever airhorn/bass drop sound you have!
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            onComplete(true)
-            // Sandbox Reset
-            hypeLevel = 0.0
+        // Add points and reset the bar so they can do it again!
+        withAnimation(.spring()) {
+            dropCount += 1
+            score += 50
+            hypeLevel = 0.0 // Instantly reset to 0
             previousPositions = []
-            hasWon = false
         }
     }
 }
@@ -131,7 +143,15 @@ struct DJDeckView: View {
                 .frame(width: 40, height: 40)
         }
         // The record physically spins faster the more you move your hands!
-        .rotationEffect(.degrees(Double(hype * 360)))
+        .rotationEffect(.degrees(Double(hype * 180)))
         .opacity(isActive ? 1.0 : 0.5)
+    }
+}
+
+// 🔧 PREVIEW SUPPORT
+struct DJScene_Previews: PreviewProvider {
+    static var previews: some View {
+        DJScene(engine: TrackingEngine(), score: .constant(0), onComplete: { _ in })
+            .background(Color.black)
     }
 }
