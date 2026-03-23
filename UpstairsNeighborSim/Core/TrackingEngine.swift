@@ -24,7 +24,7 @@ class TrackingEngine: NSObject, ObservableObject {
             videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue"))
             if session.canAddOutput(videoOutput) { session.addOutput(videoOutput) }
             
-            handPoseRequest.maximumHandCount = 2
+            handPoseRequest.maximumHandCount = 4
         } catch {
             print(error)
         }

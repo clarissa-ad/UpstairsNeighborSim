@@ -13,8 +13,8 @@ struct BonusScene: View {
     @State private var flashColor: Color = .clear
     
     // 📐 The Math (Y: 0.0 is top of screen, Y: 1.0 is bottom)
-    let liftLine: CGFloat = 0.35  // Hand must go above top 35%
-    let resetLine: CGFloat = 0.65 // Hand must drop below bottom 65%
+    let liftLine: CGFloat = 0.7  // Hand must go above top 35%
+    let resetLine: CGFloat = 0.3 // Hand must drop below bottom 65%
     
     var body: some View {
         GeometryReader { geo in

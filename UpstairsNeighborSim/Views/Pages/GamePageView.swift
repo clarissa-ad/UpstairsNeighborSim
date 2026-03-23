@@ -64,6 +64,7 @@ struct GamePageView: View {
         case .party: PartyScene(engine: engine, score: score, playerZone: zone) { _ in }
         case .dj: DJScene(engine: engine, score: score, playerZone: zone) { _ in }
         case .cymbals: CymbalScene(engine: engine, score: score, playerZone: zone) { _ in }
+        case .furniture: FurnitureScene(engine: engine, score: score, playerZone: zone) { _ in }
         case .bonus: BonusScene(engine: engine, score: score, playerZone: zone) { _ in }
         }
     }

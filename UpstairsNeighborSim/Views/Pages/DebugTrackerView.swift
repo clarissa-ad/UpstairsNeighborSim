@@ -7,6 +7,7 @@ enum DebugScene: String, CaseIterable {
     case dance = "💃 DANCE!"
     case dj = "🎧 DJ!"
     case cymbals = "🥁 CYMBALS!"
+    case furniture = "🛏️ ROOM MAKEOVER!"
     case bonus = "6️⃣7️⃣ BONUS!"
 }
 
@@ -158,6 +159,8 @@ struct DebugTrackerView: View {
             DJScene(engine: engine, score: score, playerZone: zone) { _ in wins.wrappedValue += 1 }
         case .cymbals:
             CymbalScene(engine: engine, score: score, playerZone: zone) { _ in wins.wrappedValue += 1 }
+        case .furniture:
+            FurnitureScene(engine: engine, score: score, playerZone: zone) { _ in wins.wrappedValue += 1 }
         case .bonus:
             BonusScene(engine: engine, score: score, playerZone: zone) { _ in wins.wrappedValue += 1 }
         }

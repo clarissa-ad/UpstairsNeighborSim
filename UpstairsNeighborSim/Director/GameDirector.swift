@@ -3,10 +3,10 @@ import Combine
 
 // 1. THE DATABASE: Centralized Metadata for all games
 enum MiniGame: CaseIterable {
-    case stomp, snooze, party, dj, cymbals, bonus
+    case stomp, snooze, party, dj, cymbals, furniture, bonus
     
     static var normalGames: [MiniGame] {
-        return [.stomp, .snooze, .party, .dj, .cymbals]
+        return [.stomp, .snooze, .party, .dj, .cymbals, .furniture]
     }
     
     var instruction: String {
@@ -16,6 +16,7 @@ enum MiniGame: CaseIterable {
         case .party: return "WAVE!"
         case .dj: return "SCRATCH!"
         case .cymbals: return "CLAP!"
+        case .furniture: return "PINCH & GRAB!"
         case .bonus: return "BONUS STAGE!"
         }
     }
