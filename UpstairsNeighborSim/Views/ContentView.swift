@@ -1,5 +1,6 @@
 import SwiftUI
 
+// 💡 TOP-LEVEL DEFINITION: This prevents the "Cannot find type AppState" error.
 enum AppState {
     case intro
     case playingSolo
@@ -8,7 +9,6 @@ enum AppState {
 }
 
 struct ContentView: View {
-    // ONE Engine to rule them all!
     @StateObject private var engine = TrackingEngine()
     @State private var selectedRounds: Int = 5
     @State private var currentState: AppState = .intro
@@ -20,7 +20,6 @@ struct ContentView: View {
                 HStack(spacing: 0) {
                     Spacer(minLength: 0)
                     
-                    // 🔒 THE VAULT: Everything is permanently locked to a 16:9 ratio.
                     ZStack {
                         // LAYER 1: The Camera
                         CameraView(session: engine.session)
@@ -31,43 +30,26 @@ struct ContentView: View {
                             case .intro:
                                 MainMenuView(
                                     engine: engine,
-                                    onPlaySolo: { rounds in // ⬅️ Catch the argument here
+                                    onPlaySolo: { rounds in
                                         self.selectedRounds = rounds
                                         self.currentState = .playingSolo
                                     },
-                                    onPlayVS: { rounds in // ⬅️ Catch the argument here
+                                    onPlayVS: { rounds in
                                         self.selectedRounds = rounds
                                         self.currentState = .playingVS
                                     },
-                                    onDebug: {
-                                        self.currentState = .debug
-                                    }
+                                    onDebug: { self.currentState = .debug }
                                 )
-                                
                             case .playingSolo:
-                                GamePageView(
-                                    engine: engine,
-                                    isMultiplayer: false,
-                                    rounds: selectedRounds, // ⬅️ Pass the caught value
-                                    onReturnToMenu: { self.currentState = .intro }
-                                )
-
+                                GamePageView(engine: engine, isMultiplayer: false, rounds: selectedRounds, onReturnToMenu: { currentState = .intro })
                             case .playingVS:
-                                GamePageView(
-                                    engine: engine,
-                                    isMultiplayer: true,
-                                    rounds: selectedRounds, // ⬅️ Pass the caught value
-                                    onReturnToMenu: { self.currentState = .intro }
-                                )
-                                
+                                GamePageView(engine: engine, isMultiplayer: true, rounds: selectedRounds, onReturnToMenu: { currentState = .intro })
                             case .debug:
-                                DebugTrackerView(engine: engine) {
-                                    currentState = .intro
-                                }
+                                DebugTrackerView(engine: engine) { currentState = .intro }
                             }
                         }
                         
-                        // LAYER 3: The Precise AR Skeleton
+                        // 🟢 LAYER 3: THE AR DOTS (HAND TRACKING SKELETON IN TACT)
                         Canvas { context, size in
                             for hand in engine.hands {
                                 for point in hand.allPoints {
@@ -80,7 +62,7 @@ struct ContentView: View {
                             }
                         }
                         .drawingGroup()
-                        .allowsHitTesting(false) // So it doesn't block the buttons!
+                        .allowsHitTesting(false) // Don't block buttons!
                     }
                     .aspectRatio(16/9, contentMode: .fit)
                     .clipped()
@@ -91,9 +73,23 @@ struct ContentView: View {
             }
             .background(Color.black)
         }
+        // Mac specific frame support (Optional but good for Academy testing)
         .frame(minWidth: 800, minHeight: 600)
         .onAppear {
             engine.start()
+            // 🎻 Start the classy lobby music immediately
+            AudioManager.shared.playMusic("Divertissement")
+        }
+        .onChange(of: currentState) { newState in
+            // 🎼 THE CROSSFADE DIRECTOR
+            switch newState {
+            case .playingSolo, .playingVS:
+                // High-stakes chaos music
+                AudioManager.shared.playMusic("Carmen Strings", fadeDuration: 1.0)
+            case .intro, .debug:
+                // Return to sophisticated lobby music
+                AudioManager.shared.playMusic("Divertissement", fadeDuration: 1.2)
+            }
         }
     }
 }

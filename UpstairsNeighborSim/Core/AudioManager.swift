@@ -1,80 +1,63 @@
 import AVFoundation
 
 class AudioManager {
-    // 🌍 1. The Singleton
     static let shared = AudioManager()
     
-    // 🔊 2. The Players
-    // Player Pool: Prevents short sounds from cutting each other off
     private var sfxPlayers: [AVAudioPlayer] = []
-    // Dedicated Looper: For continuous sounds like dragging
     private var scrapePlayer: AVAudioPlayer?
+    private var musicPlayer: AVAudioPlayer?
     
-    private init() {
-        setupScrapePlayer()
-    }
-    
-    // 🧠 3. SUSTAINABILITY HELPER: Centralized file search logic
-    private func getFileURL(for soundName: String, ext: String) -> URL? {
-        // OPTION A: Look exactly where you specified
-        if let strictPath = Bundle.main.url(forResource: soundName, withExtension: ext, subdirectory: "Assets/Sounds") {
-            return strictPath
+    // 🔊 Master volume setting (0.0 to 1.0)
+    var masterVolume: Float = 0.5 {
+        didSet {
+            musicPlayer?.volume = masterVolume * 0.8 // Music is always slightly quieter
+            scrapePlayer?.volume = masterVolume
         }
-        // OPTION B: Fallback if Xcode flattened the folders
-        if let flatPath = Bundle.main.url(forResource: soundName, withExtension: ext) {
-            return flatPath
-        }
-        return nil
     }
+
+    private init() { setupScrapePlayer() }
     
-    // 💥 4. ONE-SHOT SOUNDS (Overlapping allowed!)
+    func playMusic(_ soundName: String, ext: String = "mp3", fadeDuration: TimeInterval = 0.8) {
+        guard let url = Bundle.main.url(forResource: soundName, withExtension: ext) else { return }
+        if musicPlayer?.url == url && musicPlayer?.isPlaying == true { return }
+        if let currentPlayer = musicPlayer, currentPlayer.isPlaying { fadeVolumeAndStop(player: currentPlayer, duration: fadeDuration) }
+        
+        do {
+            musicPlayer = try AVAudioPlayer(contentsOf: url)
+            musicPlayer?.numberOfLoops = -1
+            musicPlayer?.volume = 0
+            musicPlayer?.play()
+            musicPlayer?.setVolume(masterVolume * 0.8, fadeDuration: fadeDuration)
+        } catch { print("Music error") }
+    }
+
+    private func fadeVolumeAndStop(player: AVAudioPlayer, duration: TimeInterval) {
+        player.setVolume(0, fadeDuration: duration)
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) { player.stop() }
+    }
+
     func playSFX(_ soundName: String, ext: String = "mp3") {
-        guard let finalURL = getFileURL(for: soundName, ext: ext) else {
-            print("⚠️ AUDIO ERROR: Could not find \(soundName).\(ext)")
-            return
-        }
-        
+        guard let url = Bundle.main.url(forResource: soundName, withExtension: ext) else { return }
         do {
-            let player = try AVAudioPlayer(contentsOf: finalURL)
+            let player = try AVAudioPlayer(contentsOf: url)
+            player.volume = masterVolume // Follow master volume
             player.play()
-            
             sfxPlayers.append(player)
-            // Memory cleanup: Remove players that have finished playing
             sfxPlayers.removeAll { !$0.isPlaying }
-            
-        } catch {
-            print("⚠️ AUDIO ERROR: Failed to play \(soundName) - \(error.localizedDescription)")
-        }
+        } catch { print("SFX error") }
     }
     
-    // 🪑 5. DEDICATED SCRAPE SETUP
     private func setupScrapePlayer() {
-        // Try mp3 first, fallback to wav if needed
-        guard let finalURL = getFileURL(for: "scrape", ext: "mp3") ?? getFileURL(for: "scrape", ext: "wav") else {
-            print("⚠️ AUDIO ERROR: Could not find scrape audio file.")
-            return
-        }
-        
-        do {
-            scrapePlayer = try AVAudioPlayer(contentsOf: finalURL)
-            scrapePlayer?.numberOfLoops = 0 // 🛑 No infinite looping! It plays exactly once per request.
-            scrapePlayer?.prepareToPlay()
-        } catch {
-            print("⚠️ AUDIO ERROR: Failed to setup scrape audio")
-        }
+        guard let url = Bundle.main.url(forResource: "scrape", withExtension: "mp3") else { return }
+        try? scrapePlayer = AVAudioPlayer(contentsOf: url)
     }
     
-    // ▶️ THE SMART PLAY FUNCTION
     func playScrapeOnce() {
-        // Only play if it is completely finished with its last scrape!
         if scrapePlayer?.isPlaying == false {
-            scrapePlayer?.currentTime = 0 // Rewind to the very beginning of the sound
+            scrapePlayer?.volume = masterVolume
+            scrapePlayer?.currentTime = 0
             scrapePlayer?.play()
         }
     }
-    
-    // 🛑 Hard kill-switch for when the mini-game completely ends
-    func forceStopScrape() {
-        scrapePlayer?.stop()
-    }
+    func forceStopScrape() { scrapePlayer?.stop() }
 }
