@@ -12,8 +12,8 @@ struct FurnitureScene: View {
     @State private var totalDistanceDragged: CGFloat = 0.0
     
     // 📐 The Math Thresholds
-    let pinchThreshold: CGFloat = 0.06 // Jarak maksimal jempol & telunjuk untuk dianggap "mencubit"
-    let grabRadius: CGFloat = 0.15     // Jarak maksimal tangan ke kursi untuk bisa mengambilnya
+    let pinchThreshold: CGFloat = 0.12 // Jarak maksimal jempol & telunjuk untuk dianggap "mencubit"
+    let grabRadius: CGFloat = 0.25     // Jarak maksimal tangan ke kursi untuk bisa mengambilnya
     
     var body: some View {
         GeometryReader { geo in
@@ -90,7 +90,7 @@ struct FurnitureScene: View {
             
             // Konversi kembali ke persentase (0.0 - 1.0) agar matematisnya seragam
             let localHandX = localHandPoint.x / size.width
-            let localHandY = localHandPoint.y / size.height
+            let localHandY = 1.0 - localHandPoint.y / size.height
             
             // 📐 SPATIAL MATH 2: Apakah cubitan berada di dekat kursi?
             let distanceToChair = hypot(localHandX - chairLocalPosition.x, localHandY - chairLocalPosition.y)
