@@ -5,6 +5,7 @@ struct GamePageView: View {
     @StateObject private var director = GameDirector()
     
     var isMultiplayer: Bool
+    var rounds: Int // ⬅️ NEW: Menerima jumlah ronde dari MainMenu
     var onReturnToMenu: () -> Void
     
     // 🏆 Global Score Trackers
@@ -45,7 +46,7 @@ struct GamePageView: View {
                     renderActiveGame(score: $p1Score, progressText: $p1Progress, zone: .solo)
                 }
                 
-                // 🎨 THE NEW UNIVERSAL HUD OVERLAY
+                // 🎨 THE UNIVERSAL HUD OVERLAY
                 universalGameHUD
                 
                 // ⏸️ THE PAUSE MENU
@@ -55,14 +56,14 @@ struct GamePageView: View {
             }
         }
         .onAppear {
-            director.start()
+            // 🚀 Memulai game dengan jumlah ronde yang dipilih user!
+            director.start(rounds: rounds)
         }
     }
     
     // 🏗️ HELPER 1: The Switchboard
     @ViewBuilder
     private func renderActiveGame(score: Binding<Int>, progressText: Binding<String>, zone: PlayerZone) -> some View {
-        // 🚀 ALL GAMES NOW PERFECTLY USE THE PIPELINE!
         switch director.currentGame {
         case .stomp: StompScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
         case .snooze: SnoozeScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
@@ -77,8 +78,6 @@ struct GamePageView: View {
     // 🎨 HELPER 2: The Redesigned Universal Heads Up Display
     private var universalGameHUD: some View {
         ZStack(alignment: .top) {
-            
-            // 🛡️ THE GRADIENT SAFE ZONE
             LinearGradient(
                 colors: [Color.black.opacity(0.9), Color.black.opacity(0.4), .clear],
                 startPoint: .top,
@@ -88,13 +87,7 @@ struct GamePageView: View {
             .ignoresSafeArea(.all, edges: .top)
             
             VStack(spacing: 0) {
-                
-                // ==========================================
-                // 1. THE MASTER DASHBOARD (TOP BAR)
-                // ==========================================
                 HStack(alignment: .top) {
-                    
-                    // 🏆 LEFT: ARCADE SCORE BADGES
                     VStack(alignment: .leading, spacing: 8) {
                         if isMultiplayer {
                             scoreBadge(title: "P1", score: p1Score, color: .blue, icon: "star.fill")
@@ -106,10 +99,8 @@ struct GamePageView: View {
                     
                     Spacer()
                     
-                    // ⏱️ MID-RIGHT: PROGRESS BARS
                     VStack(alignment: .trailing, spacing: 8) {
-                        
-                        // BAR 1: DYNAMIC GLOBAL SEQUENCE PROGRESS
+                        // ⏱️ PROGRESS CAPSULES (Sekarang otomatis mengikuti jumlah ronde!)
                         HStack(spacing: 4) {
                             ForEach(0..<director.totalRounds, id: \.self) { index in
                                 Capsule()
@@ -118,13 +109,9 @@ struct GamePageView: View {
                             }
                         }
                         
-                        // BAR 2: MINI-GAME TIMER
                         GeometryReader { barGeo in
                             ZStack(alignment: .leading) {
-                                Rectangle()
-                                    .fill(Color.white.opacity(0.2))
-                                    .cornerRadius(8)
-                                
+                                Rectangle().fill(Color.white.opacity(0.2)).cornerRadius(8)
                                 Rectangle()
                                     .fill(director.timeRemaining <= 2.0 ? Color.red : Color.green)
                                     .cornerRadius(8)
@@ -145,7 +132,6 @@ struct GamePageView: View {
                     }
                     .padding(.trailing, 15)
                     
-                    // ⏸️ FAR RIGHT: PAUSE BUTTON
                     Button(action: { director.pauseTimer() }) {
                         Image(systemName: "pause.circle.fill")
                             .font(.system(size: 45))
@@ -156,9 +142,6 @@ struct GamePageView: View {
                 .padding(.horizontal, 25)
                 .padding(.top, 5)
                 
-                // ==========================================
-                // 2. THE HEADLINE & PIPELINE (UPPER-MID)
-                // ==========================================
                 VStack(spacing: 5) {
                     Text(getActionWord())
                         .font(.system(size: 70, weight: .black, design: .rounded))
@@ -179,12 +162,8 @@ struct GamePageView: View {
                 
                 Spacer()
                 
-                // ==========================================
-                // 3. DEAD CENTER INSTRUCTIONS (BOTTOM)
-                // ==========================================
                 HStack {
                     Spacer()
-                    
                     Text(getInstruction())
                         .font(.title3.bold())
                         .foregroundColor(.white)
@@ -196,7 +175,6 @@ struct GamePageView: View {
                         .cornerRadius(20)
                         .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.3), lineWidth: 1))
                         .shadow(color: .black.opacity(0.3), radius: 10)
-                    
                     Spacer()
                 }
                 .padding(.bottom, 40)
@@ -204,7 +182,7 @@ struct GamePageView: View {
         }
     }
     
-    // 🎨 UI HELPER: The Arcade Score Badge
+    // --- UI HELPERS & LOGIC (Tetap sama seperti sebelumnya) ---
     private func scoreBadge(title: String, score: Int, color: Color, icon: String) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon).foregroundColor(color)
@@ -219,7 +197,6 @@ struct GamePageView: View {
         .shadow(color: color.opacity(0.3), radius: 5)
     }
     
-    // 🎨 UI HELPER: Reusable styling for the mini-game text
     private func progressPill(text: String, color: Color) -> some View {
         Text(text)
             .font(.title2.bold())
@@ -231,7 +208,6 @@ struct GamePageView: View {
             .cornerRadius(20)
     }
     
-    // 🧠 LOGIC HELPER: Standardized English Action Words
     private func getActionWord() -> String {
         switch director.currentGame {
         case .stomp: return "STOMP THE FLOOR!"
@@ -244,7 +220,6 @@ struct GamePageView: View {
         }
     }
     
-    // 🧠 LOGIC HELPER: Standardized English Instructions
     private func getInstruction() -> String {
         switch director.currentGame {
         case .stomp: return "STOMP your foot past the line!"
@@ -257,44 +232,24 @@ struct GamePageView: View {
         }
     }
     
-    // ⏸️ HELPER 3: The Pause Menu
     private var pauseMenuOverlay: some View {
         ZStack {
             Color.black.opacity(0.85).ignoresSafeArea()
-            
             VStack(spacing: 30) {
-                Text("PAUSED")
-                    .font(.system(size: 60, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
-                    .padding(.bottom, 20)
-                
+                Text("PAUSED").font(.system(size: 60, weight: .black, design: .rounded)).foregroundColor(.white).padding(.bottom, 20)
                 Button(action: { director.resumeTimer() }) {
-                    Text("▶️ RESUME")
-                        .font(.title.bold())
-                        .foregroundColor(.white)
-                        .frame(width: 250)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(15)
+                    Text("▶️ RESUME").font(.title.bold()).foregroundColor(.white).frame(width: 250).padding().background(Color.blue).cornerRadius(15)
                 }
-                
                 Button(action: { director.forceEndGame() }) {
-                    Text("🛑 END GAME")
-                        .font(.title.bold())
-                        .foregroundColor(.white)
-                        .frame(width: 250)
-                        .padding()
-                        .background(Color.red)
-                        .cornerRadius(15)
+                    Text("🛑 END GAME").font(.title.bold()).foregroundColor(.white).frame(width: 250).padding().background(Color.red).cornerRadius(15)
                 }
             }
         }
     }
     
-    // 🔄 HELPER 4: The Reset Button Logic
     private func resetGame() {
         p1Score = 0
         p2Score = 0
-        director.start()
+        director.start(rounds: rounds)
     }
 }

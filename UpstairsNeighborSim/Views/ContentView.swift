@@ -10,6 +10,7 @@ enum AppState {
 struct ContentView: View {
     // ONE Engine to rule them all!
     @StateObject private var engine = TrackingEngine()
+    @State private var selectedRounds: Int = 5
     @State private var currentState: AppState = .intro
     
     var body: some View {
@@ -28,29 +29,36 @@ struct ContentView: View {
                         Group {
                             switch currentState {
                             case .intro:
-                                // 🏠 NEW: The Main Menu handles all routing!
                                 MainMenuView(
                                     engine: engine,
-                                    onPlaySolo: {
-                                        currentState = .playingSolo
+                                    onPlaySolo: { rounds in // ⬅️ Catch the argument here
+                                        self.selectedRounds = rounds
+                                        self.currentState = .playingSolo
                                     },
-                                    onPlayVS: {
-                                        currentState = .playingVS
+                                    onPlayVS: { rounds in // ⬅️ Catch the argument here
+                                        self.selectedRounds = rounds
+                                        self.currentState = .playingVS
                                     },
                                     onDebug: {
-                                        currentState = .debug
+                                        self.currentState = .debug
                                     }
                                 )
                                 
                             case .playingSolo:
-                                GamePageView(engine: engine, isMultiplayer: false) {
-                                    currentState = .intro // Goes back to menu after Results!
-                                }
-                                
+                                GamePageView(
+                                    engine: engine,
+                                    isMultiplayer: false,
+                                    rounds: selectedRounds, // ⬅️ Pass the caught value
+                                    onReturnToMenu: { self.currentState = .intro }
+                                )
+
                             case .playingVS:
-                                GamePageView(engine: engine, isMultiplayer: true) {
-                                    currentState = .intro // Goes back to menu after Results!
-                                }
+                                GamePageView(
+                                    engine: engine,
+                                    isMultiplayer: true,
+                                    rounds: selectedRounds, // ⬅️ Pass the caught value
+                                    onReturnToMenu: { self.currentState = .intro }
+                                )
                                 
                             case .debug:
                                 DebugTrackerView(engine: engine) {
