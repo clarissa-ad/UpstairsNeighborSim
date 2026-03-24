@@ -4,7 +4,7 @@ import SwiftUI
 enum DebugScene: String, CaseIterable {
     case stomp = "🥾 STOMP!"
     case snooze = "⏰ SNOOZE!"
-    case dance = "💃 DANCE!"
+    case party = "💃 PARTY!"
     case dj = "🎧 DJ!"
     case cymbals = "🥁 CYMBALS!"
     case furniture = "🛏️ ROOM MAKEOVER!"
@@ -158,7 +158,6 @@ struct DebugTrackerView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 8) {
                             scoreBadge(title: "SCORE", score: mockScore, color: .blue, icon: "star.fill")
-                            scoreBadge(title: "WINS", score: winCount, color: .green, icon: "trophy.fill")
                         }
                         Spacer()
                     }
@@ -169,7 +168,6 @@ struct DebugTrackerView: View {
                             Spacer()
                             VStack(alignment: .trailing, spacing: 8) {
                                 scoreBadge(title: "SCORE", score: p2Score, color: .red, icon: "star.fill")
-                                scoreBadge(title: "WINS", score: p2WinCount, color: .green, icon: "trophy.fill")
                             }
                         }
                     }
@@ -199,7 +197,7 @@ struct DebugTrackerView: View {
         switch scene {
         case .stomp: StompScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
         case .snooze: SnoozeScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
-        case .dance: PartyScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
+        case .party: PartyScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
         case .dj: DJScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
         case .cymbals: CymbalScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
         case .furniture: FurnitureScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
@@ -248,25 +246,25 @@ struct DebugTrackerView: View {
     
     private func getActionWord(for scene: DebugScene) -> String {
         switch scene {
-        case .stomp: return "STOMP!"
+        case .stomp: return "STOMP THE FLOOR!"
         case .snooze: return "WAKE UP!"
-        case .dance: return "WAVE!"
-        case .dj: return "SCRATCH!"
-        case .cymbals: return "CLAP!"
-        case .furniture: return "PULL!"
-        case .bonus: return "PUMP IT!"
+        case .party: return "IT'S A PARTY!"
+        case .dj: return "DJ TIME!"
+        case .cymbals: return "CYMBALS PRACTICE!"
+        case .furniture: return "HOME RENO!"
+        case .bonus: return "67 REDEMPTION!"
         }
     }
     
     private func getInstruction(for scene: DebugScene) -> String {
         switch scene {
-        case .stomp: return "Stomp your foot past the line!"
-        case .snooze: return "Hit the alarm clock as fast as you can!"
-        case .dance: return "Wave your hands to the target!"
-        case .dj: return "Move your hands left and right like a DJ!"
-        case .cymbals: return "Clap your hands together loudly!"
-        case .furniture: return "Pinch the chair and drag it away!"
-        case .bonus: return "Alternate pumping your arms up and down!"
+        case .stomp: return "STOMP your foot past the line!"
+        case .snooze: return "TAP the alarm clock as fast as you can!"
+        case .party: return "WAVE your hands to the target!"
+        case .dj: return "MOVE your hands left and right like a DJ!"
+        case .cymbals: return "CLAP your hands together loudly!"
+        case .furniture: return "PINCH the furniture and DRAG it away!"
+        case .bonus: return "ALTERNATE PUMPING your arms up and down!"
         }
     }
 }
