@@ -3,6 +3,8 @@ import SwiftUI
 struct CymbalScene: View {
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
+    @Binding var progressText: String // ⬅️ THE NEW DATA PIPELINE
+    
     var playerZone: PlayerZone = .solo
     var onComplete: (Bool) -> Void
     
@@ -19,21 +21,19 @@ struct CymbalScene: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
+                // 1. Flash Background
                 flashColor.ignoresSafeArea()
                 
-                VStack {
-                    Spacer()
-                    Text("CRASHES: \(currentCrashes)!")
-                        .font(.system(size: 50, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-                        .padding(.bottom, 50)
-                }
-                
+                // 2. The Spatial Cymbals (No Text HUD!)
                 drawCymbal(color: .orange, pos: leftCymbalPos, size: geo.size.width * 0.35)
                 drawCymbal(color: .yellow, pos: rightCymbalPos, size: geo.size.width * 0.35)
             }
             .onChange(of: engine.hands) {
                 updateCymbalLogic(in: geo.size)
+            }
+            .onAppear {
+                // 🚀 Initialize the pipeline text!
+                progressText = "CLAPS: \(currentCrashes)"
             }
         }
     }
@@ -52,7 +52,7 @@ struct CymbalScene: View {
     
     private func updateCymbalLogic(in size: CGSize) {
         
-        // 🛑 NEW: Use the Universal Filter!
+        // 🛑 Use the Universal Filter!
         let validHands = engine.hands.filter { hand in
             CoordinateMapper.belongsToZone(rawX: hand.indexTip.x, zone: playerZone)
         }
@@ -63,7 +63,7 @@ struct CymbalScene: View {
             return
         }
         
-        // 🎯 NEW: Use the Universal Lens to get exact pixels!
+        // 🎯 Use the Universal Lens to get exact pixels!
         let leftHandPoint = CoordinateMapper.localPoint(rawPoint: validHands[0].indexTip, zone: playerZone, screenSize: size)
         let rightHandPoint = CoordinateMapper.localPoint(rawPoint: validHands[1].indexTip, zone: playerZone, screenSize: size)
         
@@ -72,7 +72,7 @@ struct CymbalScene: View {
             rightCymbalPos = rightHandPoint
         }
         
-        // CLAP DETECTION MATH (Unchanged)
+        // CLAP DETECTION MATH
         let dx = leftHandPoint.x - rightHandPoint.x
         let dy = leftHandPoint.y - rightHandPoint.y
         let currentDistance = hypot(dx, dy)
@@ -94,6 +94,9 @@ struct CymbalScene: View {
             flashColor = .green.opacity(0.3)
             currentCrashes += 1
             score += 25
+            
+            // 🚀 PIPELINE UPDATE: Send the new text to GamePageView!
+            progressText = "CLAPS: \(currentCrashes)"
         }
         withAnimation(.easeOut(duration: 0.2).delay(0.05)) {
             flashColor = .clear
@@ -101,9 +104,15 @@ struct CymbalScene: View {
     }
 }
 
+// 🔧 PREVIEW SUPPORT
 struct CymbalScene_Previews: PreviewProvider {
     static var previews: some View {
-        CymbalScene(engine: TrackingEngine(), score: .constant(100), onComplete: { _ in })
-            .background(Color.black)
+        CymbalScene(
+            engine: TrackingEngine(),
+            score: .constant(100),
+            progressText: .constant("CLAPS: 0"),
+            onComplete: { _ in }
+        )
+        .background(Color.black)
     }
 }

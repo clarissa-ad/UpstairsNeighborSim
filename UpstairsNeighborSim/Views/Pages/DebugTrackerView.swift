@@ -18,151 +18,249 @@ struct DebugTrackerView: View {
     // Default immediately to Stomp for testing
     @State private var selectedScene: DebugScene = .stomp
     
-    // Player 1 States
+    // 🧍‍♂️ Player 1 States
     @State private var mockScore: Int = 0
-    @State private var winCount: Int = 0
+    @State private var p1Progress: String = "" // Pipeline Catcher P1
     
     // ⚔️ Player 2 States (Multiplayer)
     @State private var isMultiplayerMode: Bool = false
     @State private var p2Score: Int = 0
-    @State private var p2WinCount: Int = 0
+    @State private var p2Progress: String = "" // Pipeline Catcher P2
     
     var body: some View {
         ZStack {
-            // 1. THE STAGE (Automatically switches based on Toggle)
+            // ==========================================
+            // 1. THE STAGE (The Camera & Game Logic)
+            // ==========================================
             if isMultiplayerMode {
                 // ⚔️ SPLIT SCREEN
                 HStack(spacing: 0) {
-                    // PLAYER 1 (Left)
                     ZStack {
-                        Color.blue.opacity(0.15).ignoresSafeArea() // Blue tint
-                        renderScene(for: selectedScene, score: $mockScore, wins: $winCount, zone: .leftPlayer)
+                        Color.blue.opacity(0.15).ignoresSafeArea()
+                        renderScene(for: selectedScene, score: $mockScore, progressText: $p1Progress, zone: .leftPlayer)
                     }
-                    
-                    // THE DIVIDER
-                    Rectangle()
-                        .fill(Color.white)
-                        .frame(width: 4)
-                        .ignoresSafeArea()
-                    
-                    // PLAYER 2 (Right)
+                    Rectangle().fill(Color.white).frame(width: 4).ignoresSafeArea()
                     ZStack {
-                        Color.red.opacity(0.15).ignoresSafeArea() // Red tint
-                        renderScene(for: selectedScene, score: $p2Score, wins: $p2WinCount, zone: .rightPlayer)
+                        Color.red.opacity(0.15).ignoresSafeArea()
+                        renderScene(for: selectedScene, score: $p2Score, progressText: $p2Progress, zone: .rightPlayer)
                     }
                 }
             } else {
                 // 🧍‍♂️ SOLO MODE
-                renderScene(for: selectedScene, score: $mockScore, wins: $winCount, zone: .solo)
+                renderScene(for: selectedScene, score: $mockScore, progressText: $p1Progress, zone: .solo)
             }
             
-            // 2. THE SANDBOX HUD
+            // ==========================================
+            // 2. THE BEAUTIFUL SANDBOX HUD
+            // ==========================================
+            sandboxHUD
+        }
+        // Reset everything when swapping games or modes
+        .onChange(of: selectedScene) {
+            resetSandboxStates()
+        }
+        .onChange(of: isMultiplayerMode) {
+            resetSandboxStates()
+        }
+    }
+    
+    // 🎨 THE REDESIGNED DEBUG HUD
+    private var sandboxHUD: some View {
+        ZStack(alignment: .top) {
+            
+            // 🛡️ GRADIENT SAFE ZONES (Top & Bottom for readability)
             VStack {
-                // TOP BAR
+                LinearGradient(colors: [Color.black.opacity(0.85), Color.black.opacity(0.4), .clear], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 200)
+                    .ignoresSafeArea(.all, edges: .top)
+                Spacer()
+                LinearGradient(colors: [.clear, Color.black.opacity(0.6), Color.black.opacity(0.9)], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 150)
+                    .ignoresSafeArea(.all, edges: .bottom)
+            }
+            
+            VStack(spacing: 0) {
+                
+                // --- 1. TOP BAR: DEBUG CONTROLS ---
                 HStack {
-                    Button("❌ EXIT SANDBOX", action: onExit)
-                        .padding()
-                        .background(Color.red)
+                    // EXIT BUTTON
+                    Button(action: onExit) {
+                        HStack {
+                            Image(systemName: "xmark.circle.fill")
+                            Text("EXIT")
+                        }
+                        .font(.headline.bold())
                         .foregroundColor(.white)
-                        .cornerRadius(8)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color.red.opacity(0.8))
+                        .clipShape(Capsule())
+                    }
                     
                     Spacer()
                     
-                    // 🔧 NEW: Multiplayer Toggle
-                    Toggle("VS MODE", isOn: $isMultiplayerMode)
-                        .padding()
-                        .background(Color.black.opacity(0.7))
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                        .frame(width: 200) // Keep it compact
-                    
-                    Spacer()
-                    
+                    // SCENE PICKER
                     Picker("Test Scene", selection: $selectedScene) {
                         ForEach(DebugScene.allCases, id: \.self) { scene in
                             Text(scene.rawValue).tag(scene)
                         }
                     }
                     .pickerStyle(.menu)
-                    .padding()
-                    .background(Color.blue)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.black.opacity(0.7)))
                     .foregroundColor(.white)
-                    .cornerRadius(8)
+                    .overlay(Capsule().stroke(Color.white.opacity(0.3), lineWidth: 1))
+                    
+                    Spacer()
+                    
+                    // MULTIPLAYER TOGGLE
+                    Toggle("VS MODE", isOn: $isMultiplayerMode)
+                        .toggleStyle(SwitchToggleStyle(tint: .blue))
+                        .font(.headline.bold())
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(Color.black.opacity(0.7)))
+                        .overlay(Capsule().stroke(Color.white.opacity(0.3), lineWidth: 1))
+                        .frame(width: 180)
                 }
+                .padding(.horizontal, 30)
+                .padding(.top, 10)
                 
-                Spacer()
+                // --- 2. THE HEADLINE & PIPELINE (From GamePageView) ---
+                VStack(spacing: 5) {
+                    Text(getActionWord(for: selectedScene))
+                        .font(.system(size: 70, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                        .shadow(color: .orange, radius: 15)
+                        .rotationEffect(.degrees(-3))
+                    
+                    if isMultiplayerMode {
+                        HStack(spacing: 60) {
+                            if !p1Progress.isEmpty { progressPill(text: p1Progress, color: .blue) }
+                            if !p2Progress.isEmpty { progressPill(text: p2Progress, color: .red) }
+                        }
+                    } else {
+                        if !p1Progress.isEmpty { progressPill(text: p1Progress, color: .orange) }
+                    }
+                }
+                .padding(.top, 10)
                 
-                // BOTTOM BAR (Scoreboard)
-                HStack(spacing: 20) {
-                    // PLAYER 1 HUD
-                    VStack(spacing: 5) {
-                        Text(isMultiplayerMode ? "P1 NOISE: \(mockScore)" : "NOISE UNITS: \(mockScore)")
-                            .padding(.horizontal).padding(.vertical, 8)
-                            .background(isMultiplayerMode ? Color.blue : Color.black.opacity(0.8))
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                        
-                        Text("P1 STOMPS: \(winCount)")
-                            .padding(.horizontal).padding(.vertical, 8)
-                            .background(Color.green.opacity(0.8))
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
+                Spacer() // Keeps the center clear!
+                
+                // --- 3. BOTTOM: SCORES & INSTRUCTIONS ---
+                ZStack(alignment: .bottom) {
+                    
+                    // LEFT CORNER: P1 SCORES
+                    HStack {
+                        VStack(alignment: .leading, spacing: 8) {
+                            scoreBadge(title: "SCORE", score: mockScore, color: .blue, icon: "star.fill")
+                        }
+                        Spacer()
                     }
                     
-                    // PLAYER 2 HUD (Only shows in VS Mode)
+                    // RIGHT CORNER: P2 SCORES
                     if isMultiplayerMode {
-                        VStack(spacing: 5) {
-                            Text("P2 NOISE: \(p2Score)")
-                                .padding(.horizontal).padding(.vertical, 8)
-                                .background(Color.red)
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
-                            
-                            Text("P2 STOMPS: \(p2WinCount)")
-                                .padding(.horizontal).padding(.vertical, 8)
-                                .background(Color.green.opacity(0.8))
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
+                        HStack {
+                            Spacer()
+                            VStack(alignment: .trailing, spacing: 8) {
+                                scoreBadge(title: "SCORE", score: p2Score, color: .red, icon: "star.fill")
+                            }
                         }
                     }
+                    
+                    // DEAD CENTER: INSTRUCTION
+                    Text(getInstruction(for: selectedScene))
+                        .font(.title3.bold())
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 25)
+                        .padding(.vertical, 15)
+                        .background(.ultraThinMaterial)
+                        .environment(\.colorScheme, .dark)
+                        .cornerRadius(20)
+                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.3), lineWidth: 1))
+                        .shadow(color: .black.opacity(0.3), radius: 10)
                 }
-                .font(.headline)
+                .padding(.horizontal, 30)
+                .padding(.bottom, 40)
             }
-            .padding(30)
-        }
-        // Reset everything when swapping games
-        .onChange(of: selectedScene) {
-            mockScore = 0
-            winCount = 0
-            p2Score = 0
-            p2WinCount = 0
-        }
-        .onChange(of: isMultiplayerMode) {
-            mockScore = 0
-            winCount = 0
-            p2Score = 0
-            p2WinCount = 0
         }
     }
     
-    // 🏗️ HELPER: This draws the correct game and passes the data cleanly
+    // 🏗️ HELPER: Renders the active game (Wins Binding removed!)
     @ViewBuilder
-    private func renderScene(for scene: DebugScene, score: Binding<Int>, wins: Binding<Int>, zone: PlayerZone) -> some View {
+    private func renderScene(for scene: DebugScene, score: Binding<Int>, progressText: Binding<String>, zone: PlayerZone) -> some View {
         switch scene {
-        case .stomp:
-            StompScene(engine: engine, score: score, playerZone: zone) { _ in wins.wrappedValue += 1 }
-        case .snooze:
-            SnoozeScene(engine: engine, score: score, playerZone: zone) { _ in wins.wrappedValue += 1 }
-        case .dance:
-            PartyScene(engine: engine, score: score, playerZone: zone) { _ in wins.wrappedValue += 1 }
-        case .dj:
-            DJScene(engine: engine, score: score, playerZone: zone) { _ in wins.wrappedValue += 1 }
-        case .cymbals:
-            CymbalScene(engine: engine, score: score, playerZone: zone) { _ in wins.wrappedValue += 1 }
-        case .furniture:
-            FurnitureScene(engine: engine, score: score, playerZone: zone) { _ in wins.wrappedValue += 1 }
-        case .bonus:
-            BonusScene(engine: engine, score: score, playerZone: zone) { _ in wins.wrappedValue += 1 }
+        case .stomp: StompScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        case .snooze: SnoozeScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        case .dance: PartyScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        case .dj: DJScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        case .cymbals: CymbalScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        case .furniture: FurnitureScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        case .bonus: BonusScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        }
+    }
+    
+    // 🧹 HELPER: Resets all variables
+    private func resetSandboxStates() {
+        mockScore = 0
+        p1Progress = ""
+        p2Score = 0
+        p2Progress = ""
+    }
+    
+    // ==========================================
+    // 🎨 UI & LOGIC HELPERS (Mirrored from GamePageView)
+    // ==========================================
+    
+    private func scoreBadge(title: String, score: Int, color: Color, icon: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon).foregroundColor(color)
+            Text("\(title): \(score)")
+                .font(.system(size: 18, weight: .black, design: .monospaced))
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
+        .overlay(Capsule().stroke(color.opacity(0.8), lineWidth: 2))
+        .shadow(color: color.opacity(0.3), radius: 5)
+    }
+    
+    private func progressPill(text: String, color: Color) -> some View {
+        Text(text)
+            .font(.title2.bold())
+            .foregroundColor(color)
+            .padding(.horizontal, 15)
+            .padding(.vertical, 8)
+            .background(.ultraThinMaterial)
+            .environment(\.colorScheme, .dark)
+            .cornerRadius(20)
+    }
+    
+    private func getActionWord(for scene: DebugScene) -> String {
+        switch scene {
+        case .stomp: return "STOMP!"
+        case .snooze: return "WAKE UP!"
+        case .dance: return "WAVE!"
+        case .dj: return "SCRATCH!"
+        case .cymbals: return "CLAP!"
+        case .furniture: return "PULL!"
+        case .bonus: return "PUMP IT!"
+        }
+    }
+    
+    private func getInstruction(for scene: DebugScene) -> String {
+        switch scene {
+        case .stomp: return "Stomp your foot past the line!"
+        case .snooze: return "Hit the alarm clock as fast as you can!"
+        case .dance: return "Wave your hands to the target!"
+        case .dj: return "Move your hands left and right like a DJ!"
+        case .cymbals: return "Clap your hands together loudly!"
+        case .furniture: return "Pinch the chair and drag it away!"
+        case .bonus: return "Alternate pumping your arms up and down!"
         }
     }
 }

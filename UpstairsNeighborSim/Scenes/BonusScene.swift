@@ -3,6 +3,8 @@ import SwiftUI
 struct BonusScene: View {
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
+    @Binding var progressText: String // ⬅️ THE NEW DATA PIPELINE
+    
     var playerZone: PlayerZone = .solo
     var onComplete: (Bool) -> Void
     
@@ -12,9 +14,10 @@ struct BonusScene: View {
     @State private var rightIsDown: Bool = true
     @State private var flashColor: Color = .clear
     
-    // 📐 The Math (Y: 0.0 is top of screen, Y: 1.0 is bottom)
-    let liftLine: CGFloat = 0.7  // Hand must go above top 35%
-    let resetLine: CGFloat = 0.3 // Hand must drop below bottom 65%
+    // 📐 THE FIXED MATH (Y: 0.0 is top, Y: 1.0 is bottom)
+    // By setting these to 0.35 and 0.65, we leave a 30% empty gap in the middle!
+    let liftLine: CGFloat = 0.50
+    let resetLine: CGFloat = 0.65
     
     var body: some View {
         GeometryReader { geo in
@@ -22,36 +25,28 @@ struct BonusScene: View {
                 // 1. Gold/Neon Flash Background
                 flashColor.ignoresSafeArea()
                 
-                // 2. The HUD
-                VStack {
-                    Text("67 REDEMPTION!")
-                        .font(.system(size: 55, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-                        .shadow(color: .orange, radius: 15)
-                        .padding(.top, 20)
-                    
-                    Text("67 COUNTS: \(pumps)!")
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
-                        .foregroundColor(.yellow)
-                    
-                    Spacer()
-                    
-                    Text("DO SOME 67s!")
-                        .font(.title2.bold())
-                        .foregroundColor(.white)
-                        .padding(.bottom, 40)
-                }
-                .zIndex(2)
-                
-                // 3. Visual Guide Lines (Optional, but helps players understand)
+                // 2. Visual Guide Lines
                 VStack(spacing: 0) {
-                    Rectangle().fill(Color.green.opacity(0.2)).frame(height: geo.size.height * liftLine)
+                    // TOP GREEN ZONE
+                    Rectangle()
+                        .fill(Color.green.opacity(0.3))
+                        .frame(height: geo.size.height * liftLine)
+                    
+                    // THE GAP! (Because 35% + 35% is only 70%, the Spacer gets 30% of the screen!)
                     Spacer()
-                    Rectangle().fill(Color.red.opacity(0.2)).frame(height: geo.size.height * (1 - resetLine))
+                    
+                    // BOTTOM RED ZONE
+                    Rectangle()
+                        .fill(Color.red.opacity(0.3))
+                        .frame(height: geo.size.height * (1.0 - resetLine))
                 }
             }
             .onChange(of: engine.hands) {
                 checkAlternatingPump()
+            }
+            .onAppear {
+                // 🚀 Initialize the pipeline text!
+                progressText = "PUMPS: \(pumps)"
             }
         }
     }
@@ -87,12 +82,15 @@ struct BonusScene: View {
     }
     
     private func triggerPump() {
-        AudioManager.shared.playSFX("whoosh") // Or a coin sound!
+        AudioManager.shared.playSFX("whoosh")
         
         withAnimation(.easeIn(duration: 0.05)) {
             pumps += 1
-            score += 30 // Bonus stages give massive points!
+            score += 30
             flashColor = .yellow.opacity(0.4)
+            
+            // 🚀 PIPELINE UPDATE: Send the new text to GamePageView!
+            progressText = "PUMPS: \(pumps)"
         }
         
         withAnimation(.easeOut(duration: 0.2).delay(0.05)) {
@@ -104,7 +102,12 @@ struct BonusScene: View {
 // 🔧 PREVIEW
 struct BonusScene_Previews: PreviewProvider {
     static var previews: some View {
-        BonusScene(engine: TrackingEngine(), score: .constant(500), onComplete: { _ in })
-            .background(Color.black)
+        BonusScene(
+            engine: TrackingEngine(),
+            score: .constant(500),
+            progressText: .constant("PUMPS: 0"),
+            onComplete: { _ in }
+        )
+        .background(Color.black)
     }
 }

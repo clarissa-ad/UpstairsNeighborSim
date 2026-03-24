@@ -1,13 +1,17 @@
 import SwiftUI
 
 struct FurnitureScene: View {
+    // 🔧 STANDARD CONTRACT
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
+    @Binding var progressText: String // ⬅️ THE NEW DATA PIPELINE
+    
     var playerZone: PlayerZone = .solo
     var onComplete: (Bool) -> Void
     
     // 🔧 Game State
-    @State private var chairLocalPosition: CGPoint = CGPoint(x: 0.5, y: 0.5)
+    // ⬇️ Lowered the starting Y position to 0.65 to keep the camera and dashboard clear!
+    @State private var chairLocalPosition: CGPoint = CGPoint(x: 0.5, y: 0.65)
     @State private var isGrabbed: Bool = false
     @State private var totalDistanceDragged: CGFloat = 0.0
     @State private var distanceToChair: CGFloat = 1.0
@@ -20,34 +24,12 @@ struct FurnitureScene: View {
         GeometryReader { geo in
             ZStack {
                 // 🎨 1. THE AR CAMERA FILTER
-                // Replaced the muddy brown with a vibrant, transparent neon filter!
                 (isGrabbed ? Color.yellow : Color.orange)
-                    .opacity(isGrabbed ? 0.3 : 0.15) // Low opacity so the camera shines through clearly
+                    .opacity(isGrabbed ? 0.3 : 0.15)
                     .ignoresSafeArea()
                     .animation(.easeInOut(duration: 0.3), value: isGrabbed)
                 
-                // 2. HUD & Instruksi
-                VStack {
-                    Text("GESER KURSI!")
-                        .font(.system(size: 50, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-                        .shadow(color: .orange, radius: 10)
-                        
-                    Text("DRAGGED: \(Int(totalDistanceDragged))m")
-                        .font(.title.bold())
-                        .foregroundColor(.yellow)
-                        
-                    Spacer()
-                    
-                    Text("Jepit jari (Pinch) ke kursi & seret!")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding(.bottom, 40)
-                }
-                .padding(40)
-                .zIndex(2)
-                
-                // 3. Objek Kursi yang Bisa Diseret
+                // 3. Objek Kursi yang Bisa Diseret (NO TEXT HUD!)
                 ZStack {
                     // 🧲 Visual Feedback
                     Circle()
@@ -67,6 +49,10 @@ struct FurnitureScene: View {
             }
             .onChange(of: engine.hands) {
                 checkPinchAndDrag(in: geo.size)
+            }
+            .onAppear {
+                // 🚀 Initialize the pipeline text!
+                progressText = "DRAGGED: \(Int(totalDistanceDragged))m"
             }
             .onDisappear {
                 AudioManager.shared.forceStopScrape()
@@ -111,6 +97,9 @@ struct FurnitureScene: View {
                         
                         totalDistanceDragged += (dragDelta * 100)
                         
+                        // 🚀 PIPELINE UPDATE: Send the new text to the master dashboard!
+                        progressText = "DRAGGED: \(Int(totalDistanceDragged))m"
+                        
                         if totalDistanceDragged.truncatingRemainder(dividingBy: 10) < dragDelta * 100 {
                             score += 5
                         }
@@ -125,5 +114,18 @@ struct FurnitureScene: View {
         
         isGrabbed = foundGrabThisFrame
         distanceToChair = closestHandDistance
+    }
+}
+
+// 🔧 PREVIEW SUPPORT
+struct FurnitureScene_Previews: PreviewProvider {
+    static var previews: some View {
+        FurnitureScene(
+            engine: TrackingEngine(),
+            score: .constant(0),
+            progressText: .constant("DRAGGED: 0m"),
+            onComplete: { _ in }
+        )
+        .background(Color.black)
     }
 }

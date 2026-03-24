@@ -1,9 +1,11 @@
 import SwiftUI
 
 struct DJScene: View {
-    // 🔧 STANDARD CONTRACT (Perfect order to avoid Xcode errors!)
+    // 🔧 STANDARD CONTRACT
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
+    @Binding var progressText: String // ⬅️ THE NEW DATA PIPELINE
+    
     var playerZone: PlayerZone = .solo
     var onComplete: (Bool) -> Void
     
@@ -19,55 +21,48 @@ struct DJScene: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                // 1. Instructions & Hype Meter
-                VStack {
-                    Text("NGE-DJ!")
-                        .font(.system(size: 60, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-                        .shadow(color: .purple, radius: 10)
+                
+                // 1. THE DJ SETUP (Decks + Hypemeter)
+                VStack(spacing: 40) {
                     
-                    Text("BEAT DROPS: \(dropCount)!")
-                        .font(.title.bold())
-                        .foregroundColor(.yellow)
+                    // A. The Visual DJ Decks
+                    HStack(spacing: geo.size.width * 0.2) {
+                        DJDeckView(hype: hypeLevel, isActive: isHandsPresent)
+                        DJDeckView(hype: hypeLevel, isActive: isHandsPresent)
+                    }
                     
-                    // The Hype Progress Bar
+                    // B. THE COLORFUL HYPEMETER IS BACK! 🌈
                     GeometryReader { barGeo in
                         ZStack(alignment: .leading) {
+                            // Background Track
                             Rectangle()
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(height: 30)
+                                .fill(Color.white.opacity(0.15))
+                                .frame(height: 24)
                             
+                            // The Neon Fill
                             Rectangle()
                                 .fill(LinearGradient(colors: [.purple, .cyan], startPoint: .leading, endPoint: .trailing))
-                                .frame(width: min(barGeo.size.width, barGeo.size.width * (hypeLevel / requiredHype)), height: 30)
+                                .frame(width: min(barGeo.size.width, barGeo.size.width * (hypeLevel / requiredHype)), height: 24)
+                                .shadow(color: .cyan.opacity(0.8), radius: hypeLevel > 1.0 ? 10 : 0) // Adds a neon glow as it fills!
                                 .animation(.linear(duration: 0.1), value: hypeLevel)
                         }
-                        .cornerRadius(15)
+                        .cornerRadius(12)
+                        // A little border to make it pop
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.3), lineWidth: 1))
                     }
-                    .frame(height: 30)
-                    .padding(.horizontal, 40)
+                    .frame(height: 24)
+                    .padding(.horizontal, geo.size.width * 0.15) // Keep it nicely padded on the sides
                     
-                    // Warning if hands are missing
-                    if !isHandsPresent {
-                        Text("⚠️ PUT BOTH HANDS UP! ⚠️")
-                            .font(.title.bold())
-                            .foregroundColor(.red)
-                            .padding(.top, 10)
-                    }
-                    
-                    Spacer()
                 }
-                .padding(40)
-                
-                // 2. The Visual DJ Decks
-                HStack(spacing: geo.size.width * 0.2) {
-                    DJDeckView(hype: hypeLevel, isActive: isHandsPresent)
-                    DJDeckView(hype: hypeLevel, isActive: isHandsPresent)
-                }
-                .position(x: geo.size.width / 2, y: geo.size.height * 0.6)
+                // Centered beautifully in the middle of the screen!
+                .position(x: geo.size.width / 2, y: geo.size.height * 0.55)
             }
             .onChange(of: engine.hands) {
                 checkScratchLogic()
+            }
+            .onAppear {
+                // 🚀 Initialize the pipeline text!
+                progressText = "DROPS: \(dropCount)"
             }
         }
     }
@@ -95,10 +90,10 @@ struct DJScene: View {
             let leftDelta = abs(currentPositions[0] - previousPositions[0])
             let rightDelta = abs(currentPositions[1] - previousPositions[1])
             
-            // 3. Add movement to the Hype Meter!
+            // 3. Add movement to the internal math!
             hypeLevel += (leftDelta + rightDelta)
             
-            // 4. Score Attack Loop! (No more 'hasWon' limits)
+            // 4. Score Attack Loop!
             if hypeLevel >= requiredHype {
                 triggerBeatDrop()
             }
@@ -112,12 +107,15 @@ struct DJScene: View {
         // 🔊 Sound Effect
         AudioManager.shared.playSFX("stomp") // Or whatever airhorn/bass drop sound you have!
         
-        // Add points and reset the bar so they can do it again!
+        // Add points and reset the math so they can do it again!
         withAnimation(.spring()) {
             dropCount += 1
             score += 50
             hypeLevel = 0.0 // Instantly reset to 0
             previousPositions = []
+            
+            // 🚀 PIPELINE UPDATE: Send the new text to GamePageView!
+            progressText = "DROPS: \(dropCount)"
         }
     }
 }
@@ -151,7 +149,12 @@ struct DJDeckView: View {
 // 🔧 PREVIEW SUPPORT
 struct DJScene_Previews: PreviewProvider {
     static var previews: some View {
-        DJScene(engine: TrackingEngine(), score: .constant(0), onComplete: { _ in })
-            .background(Color.black)
+        DJScene(
+            engine: TrackingEngine(),
+            score: .constant(0),
+            progressText: .constant("DROPS: 0"),
+            onComplete: { _ in }
+        )
+        .background(Color.black)
     }
 }

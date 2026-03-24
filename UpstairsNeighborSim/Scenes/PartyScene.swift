@@ -6,16 +6,17 @@ enum PartySide {
 }
 
 struct PartyScene: View {
-    // 🔧 STANDARD CONTRACT (Order matters!)
+    // 🔧 STANDARD CONTRACT
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
+    @Binding var progressText: String // ⬅️ THE NEW DATA PIPELINE
+    
     var playerZone: PlayerZone = .solo
     var onComplete: (Bool) -> Void
     
     // 🔧 Infinite Game State
     @State private var hits: Int = 0
     @State private var currentSide: PartySide = .left
-    // 🛑 FIX 1: Start completely transparent so the camera shows through!
     @State private var bgColor: Color = .clear
     
     // 🪩 Disco colors for when they hit a zone
@@ -27,62 +28,59 @@ struct PartyScene: View {
                 // 1. The Disco Background Filter (Flashes on hit)
                 bgColor.ignoresSafeArea()
                 
-                // 2. HUD & Instructions
-                VStack {
-                    Text("ANGKAT TANGAN!")
-                        .font(.system(size: 50, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-                        .shadow(color: .purple, radius: 10)
-                        
-                    Text("WAVES: \(hits)!")
-                        .font(.title.bold())
-                        .foregroundColor(.yellow)
-                        
-                    Spacer()
-                }
-                .padding(40)
-                .zIndex(2)
-                
-                // 3. The Target Zones
+                // 2. The Target Zones (No Text HUD, just visual targets!)
                 HStack(spacing: 0) {
-                    // LEFT HIT ZONE
-                    Rectangle()
-                        .fill(currentSide == .left ? Color.white.opacity(0.2) : Color.clear)
-                        .frame(width: geo.size.width / 3)
-                        .overlay(
-                            Text(currentSide == .left ? "👋 SINI!" : "")
-                                .font(.title.bold())
-                                .foregroundColor(.white)
-                        )
                     
-                    Spacer()
+                    // LEFT HIT ZONE
+                    ZStack {
+                        Rectangle()
+                            .fill(currentSide == .left ? Color.white.opacity(0.15) : Color.clear)
+                        
+                        // Pulsing Target Ring
+                        Circle()
+                            .stroke(Color.white.opacity(currentSide == .left ? 0.6 : 0.0), lineWidth: 6)
+                            .frame(width: 80, height: 80)
+                            .scaleEffect(currentSide == .left ? 1.1 : 0.8)
+                            .animation(currentSide == .left ? .easeInOut(duration: 0.5).repeatForever(autoreverses: true) : .default, value: currentSide)
+                    }
+                    .frame(width: geo.size.width / 3)
+                    
+                    Spacer() // KEEPS THE CENTER CLEAR!
                     
                     // RIGHT HIT ZONE
-                    Rectangle()
-                        .fill(currentSide == .right ? Color.white.opacity(0.2) : Color.clear)
-                        .frame(width: geo.size.width / 3)
-                        .overlay(
-                            Text(currentSide == .right ? "SINI! 👋" : "")
-                                .font(.title.bold())
-                                .foregroundColor(.white)
-                        )
+                    ZStack {
+                        Rectangle()
+                            .fill(currentSide == .right ? Color.white.opacity(0.15) : Color.clear)
+                        
+                        // Pulsing Target Ring
+                        Circle()
+                            .stroke(Color.white.opacity(currentSide == .right ? 0.6 : 0.0), lineWidth: 6)
+                            .frame(width: 80, height: 80)
+                            .scaleEffect(currentSide == .right ? 1.1 : 0.8)
+                            .animation(currentSide == .right ? .easeInOut(duration: 0.5).repeatForever(autoreverses: true) : .default, value: currentSide)
+                    }
+                    .frame(width: geo.size.width / 3)
                 }
             }
-            // 4. The Logic Loop (Passing in geo.size for the math!)
+            // 4. The Logic Loop
             .onChange(of: engine.hands) {
                 checkWaveLogic(in: geo.size)
+            }
+            .onAppear {
+                // 🚀 Initialize the pipeline text!
+                progressText = "WAVES: \(hits)"
             }
         }
     }
     
     private func checkWaveLogic(in size: CGSize) {
-        // 🛑 1. MULTIPLAYER FILTER: Ignore the other player's hands
+        // 🛑 MULTIPLAYER FILTER: Ignore the other player's hands
         let validHands = engine.hands.filter {
             CoordinateMapper.belongsToZone(rawX: $0.indexTip.x, zone: playerZone)
         }
         
         for hand in validHands {
-            // 🎯 2. UNIVERSAL LENS: Map the raw camera X to this specific UI view
+            // 🎯 UNIVERSAL LENS: Map the raw camera X to this specific UI view
             let localPoint = CoordinateMapper.localPoint(rawPoint: hand.indexTip, zone: playerZone, screenSize: size)
             
             // Convert pixels back to a percentage (0.0 to 1.0) for the local UI bounds
@@ -106,18 +104,19 @@ struct PartyScene: View {
         // 1. Instantly swap the target side so they have to wave back
         currentSide = nextSide
         
-        // 2. Add points!
+        // 2. Add points & update pipeline!
         hits += 1
         score += 20
+        progressText = "WAVES: \(hits)" // 🚀 Feed the dashboard
         
         // 3. Disco Filter Logic!
         let newColor = partyColors.randomElement() ?? .purple
         withAnimation(.easeIn(duration: 0.05)) {
-            // 🛑 FIX 2: Apply lowered transparency (opacity) to act as a camera filter
+            // Apply lowered transparency (opacity) to act as a camera filter
             bgColor = newColor.opacity(0.5)
         }
         withAnimation(.easeOut(duration: 0.3).delay(0.05)) {
-            // 🛑 FIX 3: Fade back to completely clear instead of black!
+            // Fade back to completely clear
             bgColor = .clear
         }
     }
@@ -126,7 +125,12 @@ struct PartyScene: View {
 // 🔧 PREVIEW SUPPORT
 struct PartyScene_Previews: PreviewProvider {
     static var previews: some View {
-        PartyScene(engine: TrackingEngine(), score: .constant(100), onComplete: { _ in })
-            .background(Color.black)
+        PartyScene(
+            engine: TrackingEngine(),
+            score: .constant(100),
+            progressText: .constant("WAVES: 0"),
+            onComplete: { _ in }
+        )
+        .background(Color.black)
     }
 }

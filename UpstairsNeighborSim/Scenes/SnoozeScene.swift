@@ -10,39 +10,25 @@ struct AlarmTarget: Identifiable {
 }
 
 struct SnoozeScene: View {
-    // 🔧 STANDARD CONTRACT (Order matters!)
+    // 🔧 STANDARD CONTRACT
     @ObservedObject var engine: TrackingEngine
     @Binding var score: Int
+    @Binding var progressText: String // ⬅️ THE NEW DATA PIPELINE
+    
     var playerZone: PlayerZone = .solo
     var onComplete: (Bool) -> Void
     
     // 🔧 Infinite Game State
     @State private var alarms: [AlarmTarget] = []
     @State private var totalSnoozes: Int = 0
-    @State private var isShaking: Bool = false // 🔧 NEW: Much smoother animation state
+    @State private var isShaking: Bool = false // 🔧 Much smoother animation state
     
     let maxAlarmsOnScreen = 4
     
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                // 1. Background HUD
-                VStack {
-                    Text("MATIKAN!")
-                        .font(.system(size: 50, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-                        .shadow(color: .blue, radius: 10)
-                    
-                    Text("SNOOZES: \(totalSnoozes)!")
-                        .font(.title.bold())
-                        .foregroundColor(.yellow)
-                    
-                    Spacer()
-                }
-                .padding(40)
-                .zIndex(2)
-                
-                // 2. Draw the Alarms
+                // 2. Draw the Alarms (NO TEXT HUD!)
                 ForEach(alarms) { alarm in
                     ZStack {
                         Circle()
@@ -55,7 +41,7 @@ struct SnoozeScene: View {
                             .foregroundColor(.white)
                     }
                     .position(x: alarm.x * geo.size.width, y: alarm.y * geo.size.height)
-                    // 🔧 NEW: A much cleaner, crash-proof shake animation
+                    // 🔧 A much cleaner, crash-proof shake animation
                     .rotationEffect(.degrees(isShaking ? 5 : -5))
                     .animation(
                         .easeInOut(duration: 0.1).repeatForever(autoreverses: true),
@@ -68,6 +54,8 @@ struct SnoozeScene: View {
                 for _ in 0..<maxAlarmsOnScreen {
                     alarms.append(generateRandomAlarm())
                 }
+                // 🚀 Initialize the pipeline text!
+                progressText = "SNOOZED: \(totalSnoozes)"
             }
             .onChange(of: engine.hands) {
                 checkTaps(in: geo.size)
@@ -80,7 +68,8 @@ struct SnoozeScene: View {
     private func generateRandomAlarm() -> AlarmTarget {
         return AlarmTarget(
             x: CGFloat.random(in: 0.20...0.80),
-            y: CGFloat.random(in: 0.30...0.70),
+            // ⬇️ Pushed down to 0.35 so it doesn't overlap the new master dashboard!
+            y: CGFloat.random(in: 0.35...0.70),
             radius: CGFloat.random(in: 35...65)
         )
     }
@@ -120,6 +109,9 @@ struct SnoozeScene: View {
                 totalSnoozes += snoozedCountThisFrame
                 score += (10 * snoozedCountThisFrame)
                 
+                // 🚀 PIPELINE UPDATE: Feed data to the top dashboard!
+                progressText = "SNOOZED: \(totalSnoozes)"
+                
                 newAlarms.removeAll { $0.isSnoozed }
                 
                 for _ in 0..<snoozedCountThisFrame {
@@ -132,9 +124,15 @@ struct SnoozeScene: View {
     }
 }
 
+// 🔧 PREVIEW SUPPORT
 struct SnoozeScene_Previews: PreviewProvider {
     static var previews: some View {
-        SnoozeScene(engine: TrackingEngine(), score: .constant(0), onComplete: { _ in })
-            .background(Color.black)
+        SnoozeScene(
+            engine: TrackingEngine(),
+            score: .constant(0),
+            progressText: .constant("SNOOZED: 0"),
+            onComplete: { _ in }
+        )
+        .background(Color.black)
     }
 }

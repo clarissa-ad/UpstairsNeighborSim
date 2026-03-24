@@ -25,33 +25,35 @@ class GameDirector: ObservableObject {
     
     // 🔧 SEQUENCE SETTINGS
     @Published var isSequenceComplete: Bool = false
-    @Published var isPaused: Bool = false // ⏸️ NEW: Tracks if the game is paused
-    var totalSequenceLength: Int = 5
-    private var gamesPlayed: Int = 0
+    @Published var isPaused: Bool = false
+    
+    // 📊 THE MISSING PIECES: UI Tracking Variables for the Progress Bars
+    @Published var totalRounds: Int = 5
+    @Published var currentRoundIndex: Int = 0
     
     private var timerCancellable: AnyCancellable?
     
     func start(rounds: Int = 5) {
-        self.totalSequenceLength = rounds
-        self.gamesPlayed = 0
+        self.totalRounds = rounds
+        self.currentRoundIndex = 0
         self.isSequenceComplete = false
         self.isPaused = false
         pickNextActivity(isFirstRound: true)
     }
     
-    // ⏸️ NEW: Pause functionality
+    // ⏸️ Pause functionality
     func pauseTimer() {
         isPaused = true
         timerCancellable?.cancel()
     }
     
-    // ▶️ NEW: Resume functionality
+    // ▶️ Resume functionality
     func resumeTimer() {
         isPaused = false
-        startTimer() // Restarts the clock from where it left off
+        startTimer()
     }
     
-    // 🛑 NEW: Forces the game to end and jump to the scoreboard
+    // 🛑 Forces the game to end and jump to the scoreboard
     func forceEndGame() {
         timerCancellable?.cancel()
         isPaused = false
@@ -60,31 +62,34 @@ class GameDirector: ObservableObject {
     
     func resetToMenu() {
         timerCancellable?.cancel()
-        gamesPlayed = 0
+        currentRoundIndex = 0
         isSequenceComplete = false
         isPaused = false
     }
 
     func nextRound(success: Bool) {
         timerCancellable?.cancel()
-        gamesPlayed += 1
+        currentRoundIndex += 1 // ⬅️ THIS MOVES THE YELLOW PROGRESS BAR!
         pickNextActivity()
     }
 
     func pickNextActivity(isFirstRound: Bool = false) {
-        if gamesPlayed >= totalSequenceLength {
+        // If we have played all the rounds, end the game!
+        if currentRoundIndex >= totalRounds {
             isSequenceComplete = true
             timerCancellable?.cancel()
             return
         }
         
-        if gamesPlayed == (totalSequenceLength - 1) {
+        // If it is the very last round, ALWAYS play the bonus game!
+        if currentRoundIndex == (totalRounds - 1) {
             currentGame = .bonus
             timeRemaining = currentGame.timeLimit
             startTimer()
             return
         }
         
+        // Otherwise, pick a random normal game
         var nextGame = MiniGame.normalGames.randomElement() ?? .stomp
         if !isFirstRound {
             while nextGame == currentGame {
