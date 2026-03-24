@@ -75,12 +75,6 @@ struct GamePageView: View {
             // TOP BAR: Scores, Instruction & Pause Button
             ZStack(alignment: .top) {
                 
-                // CENTER: The Current Game Instruction
-                Text(director.currentGame.instruction)
-                    .font(.system(size: 50, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
-                    .shadow(color: .black, radius: 5)
-                
                 // SIDES: Scoreboard (Left) and Pause (Right)
                 HStack(alignment: .top) {
                     

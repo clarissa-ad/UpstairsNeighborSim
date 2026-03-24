@@ -24,19 +24,19 @@ struct BonusScene: View {
                 
                 // 2. The HUD
                 VStack {
-                    Text("REDEMPTION!")
+                    Text("67 REDEMPTION!")
                         .font(.system(size: 55, weight: .black, design: .rounded))
                         .foregroundColor(.white)
                         .shadow(color: .orange, radius: 15)
                         .padding(.top, 20)
                     
-                    Text("PUMP IT: \(pumps)!")
-                        .font(.system(size: 40, weight: .bold, design: .monospaced))
+                    Text("67 COUNTS: \(pumps)!")
+                        .font(.system(size: 40, weight: .bold, design: .rounded))
                         .foregroundColor(.yellow)
                     
                     Spacer()
                     
-                    Text("ANGKAT BERGANTIAN! (ALTERNATE!)")
+                    Text("DO SOME 67s!")
                         .font(.title2.bold())
                         .foregroundColor(.white)
                         .padding(.bottom, 40)

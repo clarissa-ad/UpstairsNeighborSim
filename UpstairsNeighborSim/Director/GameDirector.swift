@@ -9,18 +9,6 @@ enum MiniGame: CaseIterable {
         return [.stomp, .snooze, .party, .dj, .cymbals, .furniture]
     }
     
-    var instruction: String {
-        switch self {
-        case .stomp: return "STOMP!"
-        case .snooze: return "SNOOZE!"
-        case .party: return "WAVE!"
-        case .dj: return "SCRATCH!"
-        case .cymbals: return "CLAP!"
-        case .furniture: return "PINCH & GRAB!"
-        case .bonus: return "BONUS STAGE!"
-        }
-    }
-    
     var timeLimit: Double {
         switch self {
         case .snooze: return 7.0

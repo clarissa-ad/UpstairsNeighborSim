@@ -15,7 +15,8 @@ struct PartyScene: View {
     // 🔧 Infinite Game State
     @State private var hits: Int = 0
     @State private var currentSide: PartySide = .left
-    @State private var bgColor: Color = .black
+    // 🛑 FIX 1: Start completely transparent so the camera shows through!
+    @State private var bgColor: Color = .clear
     
     // 🪩 Disco colors for when they hit a zone
     let partyColors: [Color] = [.purple, .blue, .green, .red, .orange, .cyan]
@@ -23,7 +24,7 @@ struct PartyScene: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                // 1. The Disco Background (Flashes on hit)
+                // 1. The Disco Background Filter (Flashes on hit)
                 bgColor.ignoresSafeArea()
                 
                 // 2. HUD & Instructions
@@ -100,22 +101,24 @@ struct PartyScene: View {
     
     private func triggerHit(nextSide: PartySide) {
         // 🔊 Play the whoosh instantly
-        AudioManager.shared.playSFX("whoosh") // Or any fast swish sound
+        AudioManager.shared.playSFX("whoosh")
         
         // 1. Instantly swap the target side so they have to wave back
         currentSide = nextSide
         
-        // 2. Add points! (Infinite Score Attack)
+        // 2. Add points!
         hits += 1
         score += 20
         
-        // 3. Disco Lighting! Flash a random neon color, then fade back to black
+        // 3. Disco Filter Logic!
         let newColor = partyColors.randomElement() ?? .purple
         withAnimation(.easeIn(duration: 0.05)) {
-            bgColor = newColor
+            // 🛑 FIX 2: Apply lowered transparency (opacity) to act as a camera filter
+            bgColor = newColor.opacity(0.5)
         }
         withAnimation(.easeOut(duration: 0.3).delay(0.05)) {
-            bgColor = .black
+            // 🛑 FIX 3: Fade back to completely clear instead of black!
+            bgColor = .clear
         }
     }
 }

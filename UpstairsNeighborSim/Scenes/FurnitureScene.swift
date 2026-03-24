@@ -19,8 +19,14 @@ struct FurnitureScene: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                Color.brown.opacity(0.3).ignoresSafeArea()
+                // 🎨 1. THE AR CAMERA FILTER
+                // Replaced the muddy brown with a vibrant, transparent neon filter!
+                (isGrabbed ? Color.yellow : Color.orange)
+                    .opacity(isGrabbed ? 0.3 : 0.15) // Low opacity so the camera shines through clearly
+                    .ignoresSafeArea()
+                    .animation(.easeInOut(duration: 0.3), value: isGrabbed)
                 
+                // 2. HUD & Instruksi
                 VStack {
                     Text("GESER KURSI!")
                         .font(.system(size: 50, weight: .black, design: .rounded))
@@ -41,7 +47,9 @@ struct FurnitureScene: View {
                 .padding(40)
                 .zIndex(2)
                 
+                // 3. Objek Kursi yang Bisa Diseret
                 ZStack {
+                    // 🧲 Visual Feedback
                     Circle()
                         .fill(isGrabbed ? Color.yellow.opacity(0.5) : (distanceToChair < grabRadius ? Color.white.opacity(0.3) : Color.clear))
                         .frame(width: 120, height: 120)
@@ -60,7 +68,6 @@ struct FurnitureScene: View {
             .onChange(of: engine.hands) {
                 checkPinchAndDrag(in: geo.size)
             }
-            // 🛑 We ONLY keep the stop command here, so it doesn't bleed into the next mini-game when the timer runs out!
             .onDisappear {
                 AudioManager.shared.forceStopScrape()
             }
@@ -100,8 +107,6 @@ struct FurnitureScene: View {
                     let dragDelta = hypot(localHandX - chairLocalPosition.x, localHandY - chairLocalPosition.y)
                     
                     if dragDelta > 0.005 {
-                        // 🎵 AUDIO LOGIC: Ask to play. It will only play if it's not already playing.
-                        // Notice there are no "else { stop() }" blocks anymore!
                         AudioManager.shared.playScrapeOnce()
                         
                         totalDistanceDragged += (dragDelta * 100)
@@ -118,7 +123,6 @@ struct FurnitureScene: View {
             }
         }
         
-        // 🔄 UPDATE THE UI STATES
         isGrabbed = foundGrabThisFrame
         distanceToChair = closestHandDistance
     }
