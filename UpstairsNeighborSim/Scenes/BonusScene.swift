@@ -46,7 +46,7 @@ struct BonusScene: View {
             }
             .onAppear {
                 // 🚀 Initialize the pipeline text!
-                progressText = "PUMPS: \(pumps)"
+                progressText = "67 PUMPS: \(pumps)"
             }
         }
     }
@@ -90,7 +90,7 @@ struct BonusScene: View {
             flashColor = .yellow.opacity(0.4)
             
             // 🚀 PIPELINE UPDATE: Send the new text to GamePageView!
-            progressText = "PUMPS: \(pumps)"
+            progressText = "67 PUMPS: \(pumps)"
         }
         
         withAnimation(.easeOut(duration: 0.2).delay(0.05)) {
@@ -105,7 +105,7 @@ struct BonusScene_Previews: PreviewProvider {
         BonusScene(
             engine: TrackingEngine(),
             score: .constant(500),
-            progressText: .constant("PUMPS: 0"),
+            progressText: .constant("67 PUMPS: 0"),
             onComplete: { _ in }
         )
         .background(Color.black)

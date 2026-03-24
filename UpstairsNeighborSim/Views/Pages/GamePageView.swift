@@ -62,22 +62,15 @@ struct GamePageView: View {
     // 🏗️ HELPER 1: The Switchboard
     @ViewBuilder
     private func renderActiveGame(score: Binding<Int>, progressText: Binding<String>, zone: PlayerZone) -> some View {
-        // 🚀 ALL SCENES NOW USE THE STANDARDIZED PIPELINE CONTRACT
+        // 🚀 ALL GAMES NOW PERFECTLY USE THE PIPELINE!
         switch director.currentGame {
-        case .stomp:
-            StompScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
-        case .snooze:
-            SnoozeScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
-        case .party:
-            PartyScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
-        case .dj:
-            DJScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
-        case .cymbals:
-            CymbalScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
-        case .furniture:
-            FurnitureScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
-        case .bonus:
-            BonusScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        case .stomp: StompScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        case .snooze: SnoozeScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        case .party: PartyScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        case .dj: DJScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        case .cymbals: CymbalScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        case .furniture: FurnitureScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        case .bonus: BonusScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
         }
     }
     
@@ -167,14 +160,12 @@ struct GamePageView: View {
                 // 2. THE HEADLINE & PIPELINE (UPPER-MID)
                 // ==========================================
                 VStack(spacing: 5) {
-                    // A. THE GIANT ACTION WORD
                     Text(getActionWord())
                         .font(.system(size: 70, weight: .black, design: .rounded))
                         .foregroundColor(.white)
                         .shadow(color: .orange, radius: 15)
                         .rotationEffect(.degrees(-3))
                     
-                    // B. The Data Pipeline Texts
                     if isMultiplayer {
                         HStack(spacing: 60) {
                             if !p1Progress.isEmpty { progressPill(text: p1Progress, color: .blue) }
@@ -203,10 +194,7 @@ struct GamePageView: View {
                         .background(.ultraThinMaterial)
                         .environment(\.colorScheme, .dark)
                         .cornerRadius(20)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                        )
+                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.3), lineWidth: 1))
                         .shadow(color: .black.opacity(0.3), radius: 10)
                     
                     Spacer()
@@ -219,9 +207,7 @@ struct GamePageView: View {
     // 🎨 UI HELPER: The Arcade Score Badge
     private func scoreBadge(title: String, score: Int, color: Color, icon: String) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: icon)
-                .foregroundColor(color)
-            
+            Image(systemName: icon).foregroundColor(color)
             Text("\(title): \(score)")
                 .font(.system(size: 20, weight: .black, design: .monospaced))
                 .foregroundColor(.white)
@@ -248,26 +234,26 @@ struct GamePageView: View {
     // 🧠 LOGIC HELPER: Standardized English Action Words
     private func getActionWord() -> String {
         switch director.currentGame {
-        case .stomp: return "STOMP!"
+        case .stomp: return "STOMP THE FLOOR!"
         case .snooze: return "WAKE UP!"
-        case .party: return "WAVE!"
-        case .dj: return "SCRATCH!"
-        case .cymbals: return "CLAP!"
-        case .furniture: return "PULL!"
-        case .bonus: return "PUMP IT!"
+        case .party: return "IT'S A PARTY!"
+        case .dj: return "DJ TIME!"
+        case .cymbals: return "CYMBALS PRACTICE!"
+        case .furniture: return "HOME RENO!"
+        case .bonus: return "67 REDEMPTION!"
         }
     }
     
     // 🧠 LOGIC HELPER: Standardized English Instructions
     private func getInstruction() -> String {
         switch director.currentGame {
-        case .stomp: return "Stomp your foot past the line!"
-        case .snooze: return "Hit the alarm clock as fast as you can!"
-        case .party: return "Wave your hands to the target!"
-        case .dj: return "Move your hands left and right like a DJ!"
-        case .cymbals: return "Clap your hands together loudly!"
-        case .furniture: return "Pinch the chair and drag it away!"
-        case .bonus: return "Alternate pumping your arms up and down!"
+        case .stomp: return "STOMP your foot past the line!"
+        case .snooze: return "TAP the alarm clock as fast as you can!"
+        case .party: return "WAVE your hands to the target!"
+        case .dj: return "MOVE your hands left and right like a DJ!"
+        case .cymbals: return "CLAP your hands together loudly!"
+        case .furniture: return "PINCH the furniture and DRAG it away!"
+        case .bonus: return "ALTERNATE PUMPING your arms up and down!"
         }
     }
     

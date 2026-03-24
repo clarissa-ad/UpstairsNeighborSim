@@ -20,11 +20,13 @@ struct DebugTrackerView: View {
     
     // 🧍‍♂️ Player 1 States
     @State private var mockScore: Int = 0
+    @State private var winCount: Int = 0
     @State private var p1Progress: String = "" // Pipeline Catcher P1
     
     // ⚔️ Player 2 States (Multiplayer)
     @State private var isMultiplayerMode: Bool = false
     @State private var p2Score: Int = 0
+    @State private var p2WinCount: Int = 0
     @State private var p2Progress: String = "" // Pipeline Catcher P2
     
     var body: some View {
@@ -37,17 +39,17 @@ struct DebugTrackerView: View {
                 HStack(spacing: 0) {
                     ZStack {
                         Color.blue.opacity(0.15).ignoresSafeArea()
-                        renderScene(for: selectedScene, score: $mockScore, progressText: $p1Progress, zone: .leftPlayer)
+                        renderScene(for: selectedScene, score: $mockScore, progressText: $p1Progress, wins: $winCount, zone: .leftPlayer)
                     }
                     Rectangle().fill(Color.white).frame(width: 4).ignoresSafeArea()
                     ZStack {
                         Color.red.opacity(0.15).ignoresSafeArea()
-                        renderScene(for: selectedScene, score: $p2Score, progressText: $p2Progress, zone: .rightPlayer)
+                        renderScene(for: selectedScene, score: $p2Score, progressText: $p2Progress, wins: $p2WinCount, zone: .rightPlayer)
                     }
                 }
             } else {
                 // 🧍‍♂️ SOLO MODE
-                renderScene(for: selectedScene, score: $mockScore, progressText: $p1Progress, zone: .solo)
+                renderScene(for: selectedScene, score: $mockScore, progressText: $p1Progress, wins: $winCount, zone: .solo)
             }
             
             // ==========================================
@@ -156,6 +158,7 @@ struct DebugTrackerView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 8) {
                             scoreBadge(title: "SCORE", score: mockScore, color: .blue, icon: "star.fill")
+                            scoreBadge(title: "WINS", score: winCount, color: .green, icon: "trophy.fill")
                         }
                         Spacer()
                     }
@@ -166,6 +169,7 @@ struct DebugTrackerView: View {
                             Spacer()
                             VStack(alignment: .trailing, spacing: 8) {
                                 scoreBadge(title: "SCORE", score: p2Score, color: .red, icon: "star.fill")
+                                scoreBadge(title: "WINS", score: p2WinCount, color: .green, icon: "trophy.fill")
                             }
                         }
                     }
@@ -189,25 +193,27 @@ struct DebugTrackerView: View {
         }
     }
     
-    // 🏗️ HELPER: Renders the active game (Wins Binding removed!)
+    // 🏗️ HELPER: Renders the active game
     @ViewBuilder
-    private func renderScene(for scene: DebugScene, score: Binding<Int>, progressText: Binding<String>, zone: PlayerZone) -> some View {
+    private func renderScene(for scene: DebugScene, score: Binding<Int>, progressText: Binding<String>, wins: Binding<Int>, zone: PlayerZone) -> some View {
         switch scene {
-        case .stomp: StompScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
-        case .snooze: SnoozeScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
-        case .dance: PartyScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
-        case .dj: DJScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
-        case .cymbals: CymbalScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
-        case .furniture: FurnitureScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
-        case .bonus: BonusScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        case .stomp: StompScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
+        case .snooze: SnoozeScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
+        case .dance: PartyScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
+        case .dj: DJScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
+        case .cymbals: CymbalScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
+        case .furniture: FurnitureScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
+        case .bonus: BonusScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
         }
     }
     
     // 🧹 HELPER: Resets all variables
     private func resetSandboxStates() {
         mockScore = 0
+        winCount = 0
         p1Progress = ""
         p2Score = 0
+        p2WinCount = 0
         p2Progress = ""
     }
     

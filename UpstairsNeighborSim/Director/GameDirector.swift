@@ -28,7 +28,7 @@ class GameDirector: ObservableObject {
     @Published var isPaused: Bool = false
     
     // 📊 THE MISSING PIECES: UI Tracking Variables for the Progress Bars
-    @Published var totalRounds: Int = 5
+    @Published var totalRounds: Int = 8
     @Published var currentRoundIndex: Int = 0
     
     private var timerCancellable: AnyCancellable?
