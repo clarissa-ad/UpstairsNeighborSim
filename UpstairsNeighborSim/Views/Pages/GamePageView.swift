@@ -5,16 +5,19 @@ struct GamePageView: View {
     @StateObject private var director = GameDirector()
     
     var isMultiplayer: Bool
-    var rounds: Int // ⬅️ NEW: Menerima jumlah ronde dari MainMenu
+    var rounds: Int
     var onReturnToMenu: () -> Void
     
     // 🏆 Global Score Trackers
     @State private var p1Score: Int = 0
     @State private var p2Score: Int = 0
     
-    // 🪚 THE DATA PIPELINES (For dynamic mini-game text)
+    // 🪚 THE DATA PIPELINES
     @State private var p1Progress: String = ""
     @State private var p2Progress: String = ""
+    
+    // 🛑 NEW: State for the instruction screen
+    @State private var showInstruction: Bool = true
     
     var body: some View {
         ZStack {
@@ -50,14 +53,41 @@ struct GamePageView: View {
                 universalGameHUD
                 
                 // ⏸️ THE PAUSE MENU
-                if director.isPaused {
+                if director.isPaused && !showInstruction {
                     pauseMenuOverlay
+                }
+                
+                // 🛑 THE BIG INSTRUCTION OVERLAY
+                if showInstruction {
+                    InstructionOverlay(
+                        actionWord: getActionWord(),
+                        description: getInstruction()
+                    )
+                    .transition(.opacity)
+                    .zIndex(100) // Forces it to the very top!
                 }
             }
         }
         .onAppear {
-            // 🚀 Memulai game dengan jumlah ronde yang dipilih user!
             director.start(rounds: rounds)
+            triggerInstruction() // Fire instruction on round 1
+        }
+        // Fire instruction every time the mini-game changes
+        .onChange(of: director.currentGame) { _ in
+            triggerInstruction()
+        }
+    }
+    
+    // --- 🚀 NEW HELPER: Timer & Overlay Logic ---
+    private func triggerInstruction() {
+        showInstruction = true
+        director.pauseTimer() // Pause game so they don't lose time reading!
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                showInstruction = false
+            }
+            director.resumeTimer() // Start the 5-second clock!
         }
     }
     
@@ -100,7 +130,6 @@ struct GamePageView: View {
                     Spacer()
                     
                     VStack(alignment: .trailing, spacing: 8) {
-                        // ⏱️ PROGRESS CAPSULES (Sekarang otomatis mengikuti jumlah ronde!)
                         HStack(spacing: 4) {
                             ForEach(0..<director.totalRounds, id: \.self) { index in
                                 Capsule()
@@ -182,7 +211,7 @@ struct GamePageView: View {
         }
     }
     
-    // --- UI HELPERS & LOGIC (Tetap sama seperti sebelumnya) ---
+    // --- UI HELPERS & LOGIC ---
     private func scoreBadge(title: String, score: Int, color: Color, icon: String) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon).foregroundColor(color)
