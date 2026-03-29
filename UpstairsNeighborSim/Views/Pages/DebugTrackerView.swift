@@ -73,7 +73,7 @@ struct DebugTrackerView: View {
             // 🛡️ GRADIENT SAFE ZONES (Top & Bottom for readability)
             VStack {
                 LinearGradient(colors: [Color.black.opacity(0.85), Color.black.opacity(0.4), .clear], startPoint: .top, endPoint: .bottom)
-                    .frame(height: 200)
+                    .frame(height: 250) // Taller to fit instructions
                     .ignoresSafeArea(.all, edges: .top)
                 Spacer()
                 LinearGradient(colors: [.clear, Color.black.opacity(0.6), Color.black.opacity(0.9)], startPoint: .top, endPoint: .bottom)
@@ -130,28 +130,32 @@ struct DebugTrackerView: View {
                 .padding(.horizontal, 30)
                 .padding(.top, 10)
                 
-                // --- 2. THE HEADLINE & PIPELINE (From GamePageView) ---
-                VStack(spacing: 5) {
+                // --- 2. UPPER AREA: BIG ACTION WORD & INSTRUCTION ---
+                VStack(spacing: 12) {
                     Text(getActionWord(for: selectedScene))
                         .font(.system(size: 70, weight: .black, design: .rounded))
                         .foregroundColor(.white)
                         .shadow(color: .orange, radius: 15)
                         .rotationEffect(.degrees(-3))
                     
-                    if isMultiplayerMode {
-                        HStack(spacing: 60) {
-                            if !p1Progress.isEmpty { progressPill(text: p1Progress, color: .blue) }
-                            if !p2Progress.isEmpty { progressPill(text: p2Progress, color: .red) }
-                        }
-                    } else {
-                        if !p1Progress.isEmpty { progressPill(text: p1Progress, color: .orange) }
-                    }
+                    // ⬆️ MOVED UP: INSTRUCTION TEXT
+                    Text(getInstruction(for: selectedScene))
+                        .font(.title3.bold())
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 25)
+                        .padding(.vertical, 12)
+                        .background(.ultraThinMaterial)
+                        .environment(\.colorScheme, .dark)
+                        .cornerRadius(20)
+                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.3), lineWidth: 1))
+                        .shadow(color: .black.opacity(0.3), radius: 10)
                 }
                 .padding(.top, 10)
                 
                 Spacer() // Keeps the center clear!
                 
-                // --- 3. BOTTOM: SCORES & INSTRUCTIONS ---
+                // --- 3. BOTTOM: PROGRESS PILLS & SCORES ---
                 ZStack(alignment: .bottom) {
                     
                     // LEFT CORNER: P1 SCORES
@@ -172,18 +176,19 @@ struct DebugTrackerView: View {
                         }
                     }
                     
-                    // DEAD CENTER: INSTRUCTION
-                    Text(getInstruction(for: selectedScene))
-                        .font(.title3.bold())
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 25)
-                        .padding(.vertical, 15)
-                        .background(.ultraThinMaterial)
-                        .environment(\.colorScheme, .dark)
-                        .cornerRadius(20)
-                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.3), lineWidth: 1))
-                        .shadow(color: .black.opacity(0.3), radius: 10)
+                    // ⬇️ MOVED DOWN: PROGRESS PILLS
+                    HStack {
+                        Spacer()
+                        if isMultiplayerMode {
+                            HStack(spacing: 60) {
+                                if !p1Progress.isEmpty { progressPill(text: p1Progress, color: .blue) }
+                                if !p2Progress.isEmpty { progressPill(text: p2Progress, color: .red) }
+                            }
+                        } else {
+                            if !p1Progress.isEmpty { progressPill(text: p1Progress, color: .orange) }
+                        }
+                        Spacer()
+                    }
                 }
                 .padding(.horizontal, 30)
                 .padding(.bottom, 40)
@@ -237,11 +242,12 @@ struct DebugTrackerView: View {
         Text(text)
             .font(.title2.bold())
             .foregroundColor(color)
-            .padding(.horizontal, 15)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
             .background(.ultraThinMaterial)
             .environment(\.colorScheme, .dark)
-            .cornerRadius(20)
+            .cornerRadius(25)
+            .shadow(color: .black.opacity(0.5), radius: 8, y: 4)
     }
     
     private func getActionWord(for scene: DebugScene) -> String {

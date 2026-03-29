@@ -108,15 +108,29 @@ struct GamePageView: View {
     // 🎨 HELPER 2: The Redesigned Universal Heads Up Display
     private var universalGameHUD: some View {
         ZStack(alignment: .top) {
+            // Top Dark Gradient (For Scores & Timer)
             LinearGradient(
                 colors: [Color.black.opacity(0.9), Color.black.opacity(0.4), .clear],
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .frame(height: 200)
+            .frame(height: 250) // Made slightly taller to accommodate the text moving up
             .ignoresSafeArea(.all, edges: .top)
             
+            // Bottom Dark Gradient (For Progress Pills)
+            VStack {
+                Spacer()
+                LinearGradient(
+                    colors: [.clear, Color.black.opacity(0.3), Color.black.opacity(0.7)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 150)
+                .ignoresSafeArea(.all, edges: .bottom)
+            }
+            
             VStack(spacing: 0) {
+                // --- TOP BAR: SCORES & TIMER ---
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 8) {
                         if isMultiplayer {
@@ -171,13 +185,34 @@ struct GamePageView: View {
                 .padding(.horizontal, 25)
                 .padding(.top, 5)
                 
-                VStack(spacing: 5) {
+                // --- UPPER AREA: BIG ACTION WORD & INSTRUCTION ---
+                VStack(spacing: 12) {
                     Text(getActionWord())
                         .font(.system(size: 70, weight: .black, design: .rounded))
                         .foregroundColor(.white)
                         .shadow(color: .orange, radius: 15)
                         .rotationEffect(.degrees(-3))
                     
+                    // ⬆️ MOVED HERE: INSTRUCTIONS
+                    Text(getInstruction())
+                        .font(.title3.bold())
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 25)
+                        .padding(.vertical, 12)
+                        .background(.ultraThinMaterial)
+                        .environment(\.colorScheme, .dark)
+                        .cornerRadius(20)
+                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.3), lineWidth: 1))
+                        .shadow(color: .black.opacity(0.3), radius: 10)
+                }
+                .padding(.top, 10) // Small push down from the top bar
+                
+                Spacer() // Pushes everything below this to the bottom
+                
+                // --- BOTTOM AREA: PROGRESS PILLS ---
+                HStack {
+                    Spacer()
                     if isMultiplayer {
                         HStack(spacing: 60) {
                             if !p1Progress.isEmpty { progressPill(text: p1Progress, color: .blue) }
@@ -186,24 +221,6 @@ struct GamePageView: View {
                     } else {
                         if !p1Progress.isEmpty { progressPill(text: p1Progress, color: .orange) }
                     }
-                }
-                .padding(.top, -15)
-                
-                Spacer()
-                
-                HStack {
-                    Spacer()
-                    Text(getInstruction())
-                        .font(.title3.bold())
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 25)
-                        .padding(.vertical, 15)
-                        .background(.ultraThinMaterial)
-                        .environment(\.colorScheme, .dark)
-                        .cornerRadius(20)
-                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.3), lineWidth: 1))
-                        .shadow(color: .black.opacity(0.3), radius: 10)
                     Spacer()
                 }
                 .padding(.bottom, 40)
@@ -230,11 +247,12 @@ struct GamePageView: View {
         Text(text)
             .font(.title2.bold())
             .foregroundColor(color)
-            .padding(.horizontal, 15)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
             .background(.ultraThinMaterial)
             .environment(\.colorScheme, .dark)
-            .cornerRadius(20)
+            .cornerRadius(25) // Made slightly rounder to look like a progress bubble
+            .shadow(color: .black.opacity(0.5), radius: 8, y: 4)
     }
     
     private func getActionWord() -> String {
