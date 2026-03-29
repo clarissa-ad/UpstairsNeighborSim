@@ -17,39 +17,59 @@ struct MainMenuView: View {
         ZStack {
             Color.black.opacity(0.8).ignoresSafeArea()
             
-            // 🌐 RESPONSIVE SPLIT LAYOUT
             HStack(spacing: 0) {
                 
-                // 👈 LEFT COLUMN: Title, Goal, Buttons
+                // 👈 LEFT COLUMN (Main Content, Left Aligned)
                 VStack(alignment: .leading, spacing: 30) {
                     Spacer()
                     
-                    // --- 1. INTEGRATED ANIMATED LOGO ---
-                    ZStack(alignment: .topLeading) {
-                        // The House acts as a background element for the text
+                    // --- 1. INTEGRATED, ANIMATED ANGER EMBLEM ---
+                    ZStack(alignment: .center) {
+                        // Base tilted house element
                         Text("🏠")
-                            .font(.system(size: 100))
-                            .offset(x: -30, y: -45)
+                            .font(.system(size: 110))
+                            .offset(x: -200, y: -100)
                             .rotationEffect(.degrees(-15))
-                            .shadow(color: .red.opacity(0.6), radius: 15)
+                            .shadow(color: .red.opacity(0.4), radius: 10)
                         
+                        // The Title
                         VStack(alignment: .leading, spacing: -25) {
                             Text("NOISY")
-                                .font(.system(size: 100, weight: .black, design: .rounded))
+                                .font(.system(size: 110, weight: .black, design: .rounded))
                                 .foregroundColor(.red)
-                                .shadow(color: .black, radius: 2) // Helps text stand out over the house
+                                .shadow(color: .red.opacity(0.6), radius: isPulsing ? 20 : 10)
+                                .zIndex(1)
                             
                             Text("NEIGHBOR")
                                 .font(.system(size: 85, weight: .black, design: .rounded))
                                 .foregroundColor(.white)
+                                .shadow(color: .black, radius: 3)
+                                .zIndex(0)
                         }
+                        .rotationEffect(.degrees(-4))
+                        .offset(x: 20)
+
+                        // 😡 NEAT ACCENT EMOJIS (Just 3 for flavor)
+                        Text("💢") // Anger vein symbol
+                            .font(.system(size: 45))
+                            .offset(x: 150, y: -80) // Top right
+                            .rotationEffect(.degrees(15))
+                        
+                        Text("🔊") // Noise
+                            .font(.system(size: 40))
+                            .offset(x: -220, y: 70) // Bottom left
+                            .rotationEffect(.degrees(-10))
+                        
+                        Text("😡") // Annoyed neighbor
+                            .font(.system(size: 35))
+                            .offset(x: 130, y: 40) // Bottom right
                     }
-                    // The entire group animates together!
+                    // The entire integrated emblem pulses
                     .rotationEffect(.degrees(isPulsing ? -2 : 1))
                     .scaleEffect(isPulsing ? 1.03 : 0.97)
-                    .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: isPulsing)
-
-                    // --- 2. UPGRADED GOAL CARD ---
+                    .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isPulsing)
+                    
+                    // --- 2. UPGRADED GOAL MISSION CARD ---
                     HStack(alignment: .center, spacing: 15) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 35))
@@ -75,7 +95,7 @@ struct MainMenuView: View {
                             .stroke(Color.yellow.opacity(0.6), lineWidth: 2)
                             .background(Color.yellow.opacity(0.05).cornerRadius(15))
                     )
-
+                    
                     // --- 3. ROUND SELECTOR HUD ---
                     VStack(alignment: .leading, spacing: 10) {
                         Text("GAME DURATION (ROUNDS)")
@@ -102,35 +122,36 @@ struct MainMenuView: View {
                             .foregroundColor(.gray)
                     }
 
-                    /// --- 4. NAVIGATION BUTTONS ---
+                    // --- 4. NAVIGATION BUTTONS (Solid filled) ---
                     VStack(alignment: .leading, spacing: 15) {
                         Button(action: { onPlaySolo(selectedRounds) }) {
                             MenuButtonView(title: "🧍‍♂️ SOLO CHAOS", color: .blue)
                         }
-                        .buttonStyle(.plain) // ⬅️ MAGIC LINE: Removes the default translucent box
+                        .buttonStyle(.plain)
                         
                         Button(action: { onPlayVS(selectedRounds) }) {
                             MenuButtonView(title: "⚔️ VS MODE", color: .red)
                         }
-                        .buttonStyle(.plain) // ⬅️ MAGIC LINE
+                        .buttonStyle(.plain)
                         
                         Button(action: { onDebug() }) {
-                            MenuButtonView(title: "🛠️ PRACTICE MODE", color: .gray)
+                            MenuButtonView(title: "🛠️ PRACTICE GYM", color: .gray)
                         }
-                        .buttonStyle(.plain) // ⬅️ MAGIC LINE
+                        .buttonStyle(.plain)
                     }
                     
                     Spacer()
+                    
                     Text("⚠️ Best played in full screen")
-                        .font(.caption.bold())
-                        .foregroundColor(.white.opacity(0.5))
+                        .font(.headline.bold())
+                        .foregroundColor(.white.opacity(0.8))
                         .padding(.bottom, 20)
                 }
-                .padding(.leading, 60) // Keeps the UI safely away from the left screen edge
+                .padding(.leading, 60)
                 
-                Spacer() // Pushes the UI to the Left, and Volume to the Right
+                Spacer()
                 
-                // 👉 RIGHT COLUMN: Audio Controls Pinned to Bottom Right
+                // 👉 RIGHT COLUMN (Audio Controls)
                 VStack {
                     Spacer()
                     
@@ -152,7 +173,7 @@ struct MainMenuView: View {
                             Slider(value: $volume, in: 0...1)
                                 .tint(.red)
                                 .frame(width: 120)
-                                .onChange(of: volume) { newValue in
+                                .onChange(of: volume) { oldValue, newValue in
                                     isMuted = false
                                     AudioManager.shared.masterVolume = newValue
                                 }
@@ -172,7 +193,7 @@ struct MainMenuView: View {
     }
 }
 
-// 🏗️ HELPER: Solid Fill Style (No Apple default background)
+// 🏗️ HELPER: Solid Fill Button
 struct MenuButtonView: View {
     var title: String
     var color: Color
@@ -180,10 +201,10 @@ struct MenuButtonView: View {
     var body: some View {
         Text(title)
             .font(.title2.bold())
-            .foregroundColor(.white) // Keep text white
+            .foregroundColor(.white)
             .frame(width: 300, alignment: .center)
             .padding(.vertical, 15)
-            .background(color) // ⬅️ Fills the button with the solid color
+            .background(color)
             .cornerRadius(15)
             .shadow(color: color.opacity(0.6), radius: 8, y: 5)
     }
