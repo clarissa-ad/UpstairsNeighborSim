@@ -96,7 +96,7 @@ struct GamePageView: View {
     private func renderActiveGame(score: Binding<Int>, progressText: Binding<String>, zone: PlayerZone) -> some View {
         switch director.currentGame {
         case .stomp: StompScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
-        case .snooze: SnoozeScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
+        case .drill: DrillScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
         case .party: PartyScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
         case .dj: DJScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
         case .cymbals: CymbalScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in }
@@ -258,7 +258,7 @@ struct GamePageView: View {
     private func getActionWord() -> String {
         switch director.currentGame {
         case .stomp: return "STOMP THE FLOOR!"
-        case .snooze: return "WAKE UP!"
+        case .drill: return "POWER DRILL!"
         case .party: return "IT'S A PARTY!"
         case .dj: return "DJ TIME!"
         case .cymbals: return "CYMBALS PRACTICE!"
@@ -270,7 +270,7 @@ struct GamePageView: View {
     private func getInstruction() -> String {
         switch director.currentGame {
         case .stomp: return "STOMP your foot past the line!"
-        case .snooze: return "TAP the alarm clock as fast as you can!"
+        case .drill: return "TAP the targets to drill holes"
         case .party: return "WAVE your hands to the target!"
         case .dj: return "MOVE your hands left and right like a DJ!"
         case .cymbals: return "CLAP your hands together loudly!"

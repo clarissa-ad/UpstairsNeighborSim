@@ -3,7 +3,7 @@ import SwiftUI
 // 🔧 A cleaner list of scenes to test
 enum DebugScene: String, CaseIterable {
     case stomp = "🥾 STOMP!"
-    case snooze = "⏰ SNOOZE!"
+    case drill = "🛠️ DRILL!"
     case party = "💃 PARTY!"
     case dj = "🎧 DJ!"
     case cymbals = "🥁 CYMBALS!"
@@ -201,7 +201,7 @@ struct DebugTrackerView: View {
     private func renderScene(for scene: DebugScene, score: Binding<Int>, progressText: Binding<String>, wins: Binding<Int>, zone: PlayerZone) -> some View {
         switch scene {
         case .stomp: StompScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
-        case .snooze: SnoozeScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
+        case .drill: DrillScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
         case .party: PartyScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
         case .dj: DJScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
         case .cymbals: CymbalScene(engine: engine, score: score, progressText: progressText, playerZone: zone) { _ in wins.wrappedValue += 1 }
@@ -253,7 +253,7 @@ struct DebugTrackerView: View {
     private func getActionWord(for scene: DebugScene) -> String {
         switch scene {
         case .stomp: return "STOMP THE FLOOR!"
-        case .snooze: return "WAKE UP!"
+        case .drill: return "POWER DRILL!"
         case .party: return "IT'S A PARTY!"
         case .dj: return "DJ TIME!"
         case .cymbals: return "CYMBALS PRACTICE!"
@@ -265,7 +265,7 @@ struct DebugTrackerView: View {
     private func getInstruction(for scene: DebugScene) -> String {
         switch scene {
         case .stomp: return "STOMP your foot past the line!"
-        case .snooze: return "TAP the alarm clock as fast as you can!"
+        case .drill: return "TAP the targets to drill holes!"
         case .party: return "WAVE your hands to the target!"
         case .dj: return "MOVE your hands left and right like a DJ!"
         case .cymbals: return "CLAP your hands together loudly!"

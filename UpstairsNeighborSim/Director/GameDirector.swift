@@ -3,15 +3,14 @@ import Combine
 
 // 1. THE DATABASE: Centralized Metadata for all games
 enum MiniGame: CaseIterable {
-    case stomp, snooze, party, dj, cymbals, furniture, bonus
+    case stomp, drill, party, dj, cymbals, furniture, bonus
     
     static var normalGames: [MiniGame] {
-        return [.stomp, .snooze, .party, .dj, .cymbals, .furniture]
+        return [.stomp, .drill, .party, .dj, .cymbals, .furniture]
     }
-    
     var timeLimit: Double {
         switch self {
-        case .snooze: return 7.0
+        case .drill: return 7.0
         case .bonus: return 9.0
         default: return 5.0
         }
