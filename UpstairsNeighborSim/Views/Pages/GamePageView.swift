@@ -106,7 +106,7 @@ struct GamePageView: View {
         }
         
         let asset = AVURLAsset(url: url)
-        return CMTimeGetSeconds(asset.duration) + 0.2
+        return CMTimeGetSeconds(asset.duration)
     }
     
     // 🏗️ HELPER 1: The Switchboard
@@ -299,9 +299,9 @@ struct GamePageView: View {
     
     private func getInstruction() -> String {
         switch director.currentGame {
-        case .stomp: return "STOMP your foot past the line!"
+        case .stomp: return "STOMP your hands past the line!"
         case .drill: return "TAP the targets to drill holes"
-        case .party: return "WAVE your hands to the target!"
+        case .party: return "WAVE your hands to the targets!"
         case .dj: return "MOVE your hands left and right like a DJ!"
         case .cymbals: return "CLAP your hands together loudly!"
         case .furniture: return "PINCH the furniture and DRAG it away!"

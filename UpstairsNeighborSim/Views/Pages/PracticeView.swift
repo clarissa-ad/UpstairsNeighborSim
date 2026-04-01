@@ -318,9 +318,9 @@ struct DebugTrackerView: View {
     
     private func getInstruction(for scene: DebugScene) -> String {
         switch scene {
-        case .stomp: return "STOMP your foot past the line!"
+        case .stomp: return "STOMP your hands past the line!"
         case .drill: return "TAP the targets to drill holes!"
-        case .party: return "WAVE your hands to the target!"
+        case .party: return "WAVE your hands to the targets!"
         case .dj: return "MOVE your hands left and right like a DJ!"
         case .cymbals: return "CLAP your hands together loudly!"
         case .furniture: return "PINCH the furniture and DRAG it away!"
