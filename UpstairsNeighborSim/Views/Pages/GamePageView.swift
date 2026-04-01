@@ -61,7 +61,8 @@ struct GamePageView: View {
                 if showInstruction {
                     InstructionOverlay(
                         actionWord: getActionWord(),
-                        description: getInstruction()
+                        description: getInstruction(),
+                        videoFilename: getVideoFilename()
                     )
                     .transition(.opacity)
                     .zIndex(100) // Forces it to the very top!
@@ -229,6 +230,16 @@ struct GamePageView: View {
     }
     
     // --- UI HELPERS & LOGIC ---
+    private func getVideoFilename() -> String? {
+        switch director.currentGame {
+        // If the current game is .bonus, tell the overlay to play this file!
+        case .bonus: return "67_Recording"
+            
+        // For all other games (until you record videos for them), return nothing
+        default: return nil
+        }
+    }
+
     private func scoreBadge(title: String, score: Int, color: Color, icon: String) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon).foregroundColor(color)

@@ -29,6 +29,9 @@ struct DebugTrackerView: View {
     @State private var p2WinCount: Int = 0
     @State private var p2Progress: String = "" // Pipeline Catcher P2
     
+    // 🛑 NEW: State to control the instruction overlay
+    @State private var showInstruction: Bool = true
+    
     var body: some View {
         ZStack {
             // ==========================================
@@ -56,13 +59,42 @@ struct DebugTrackerView: View {
             // 2. THE BEAUTIFUL SANDBOX HUD
             // ==========================================
             sandboxHUD
+            
+            // ==========================================
+            // 3. 🛑 THE INSTRUCTION OVERLAY
+            // ==========================================
+            if showInstruction {
+                InstructionOverlay(
+                    actionWord: getActionWord(for: selectedScene),
+                    description: getInstruction(for: selectedScene),
+                    videoFilename: getVideoFilename(for: selectedScene) // ⬅️ Passes the video name!
+                )
+                .transition(.opacity)
+                .zIndex(100) // Forces it to the very top!
+            }
         }
-        // Reset everything when swapping games or modes
+        .onAppear {
+            triggerInstruction()
+        }
+        // Reset everything AND trigger instruction when swapping games or modes
         .onChange(of: selectedScene) {
             resetSandboxStates()
+            triggerInstruction()
         }
         .onChange(of: isMultiplayerMode) {
             resetSandboxStates()
+            triggerInstruction()
+        }
+    }
+    
+    // --- 🚀 NEW HELPER: Instruction Trigger Logic ---
+    private func triggerInstruction() {
+        showInstruction = true
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                showInstruction = false
+            }
         }
     }
     
@@ -271,6 +303,14 @@ struct DebugTrackerView: View {
         case .cymbals: return "CLAP your hands together loudly!"
         case .furniture: return "PINCH the furniture and DRAG it away!"
         case .bonus: return "ALTERNATE PUMPING your arms up and down!"
+        }
+    }
+    
+    // ⬅️ NEW: Helper to fetch the video filename for the specific scene
+    private func getVideoFilename(for scene: DebugScene) -> String? {
+        switch scene {
+        case .bonus: return "67_Recording"
+        default: return nil
         }
     }
 }
