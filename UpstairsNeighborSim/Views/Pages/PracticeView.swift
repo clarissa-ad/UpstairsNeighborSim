@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 // 🔧 A cleaner list of scenes to test
 enum DebugScene: String, CaseIterable {
@@ -89,13 +90,34 @@ struct DebugTrackerView: View {
     
     // --- 🚀 NEW HELPER: Instruction Trigger Logic ---
     private func triggerInstruction() {
-        showInstruction = true
+            showInstruction = true
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+        // 1. Ambil nama file videonya
+        let filename = getVideoFilename(for: selectedScene)
+        
+        // 2. Minta sistem menghitung durasi persisnya
+        let exactDuration = getVideoDuration(filename: filename)
+        
+        // 3. Gunakan durasi aslinya untuk menutup overlay!
+        DispatchQueue.main.asyncAfter(deadline: .now() + exactDuration) {
             withAnimation(.easeInOut(duration: 0.3)) {
                 showInstruction = false
             }
         }
+    }
+    
+    private func getVideoDuration(filename: String?) -> Double {
+        // Kalau videonya tidak ada (nil), fallback ke 2.5 detik
+        guard let filename = filename,
+              let url = Bundle.main.url(forResource: filename, withExtension: "mov") else {
+            return 2.5
+        }
+        
+        let asset = AVURLAsset(url: url)
+        let duration = CMTimeGetSeconds(asset.duration)
+        
+        // Tambahkan sedikit buffer (0.2 detik) agar transisinya tidak memotong akhir video
+        return duration + 0.2
     }
     
     // 🎨 THE REDESIGNED DEBUG HUD
@@ -309,8 +331,13 @@ struct DebugTrackerView: View {
     // ⬅️ NEW: Helper to fetch the video filename for the specific scene
     private func getVideoFilename(for scene: DebugScene) -> String? {
         switch scene {
+        case .stomp: return "Stomp_Recording"
+        case .drill: return "Tap_Recording"
+        case .party: return "Wave_Recording"
+        case .dj: return "DJ_Recording"
+        case .cymbals: return "Clap_Recording"
+        case .furniture: return "Pinch_Recording"
         case .bonus: return "67_Recording"
-        default: return nil
         }
     }
 }

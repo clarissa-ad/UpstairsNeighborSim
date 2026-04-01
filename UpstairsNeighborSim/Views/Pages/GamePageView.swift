@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 struct GamePageView: View {
     @ObservedObject var engine: TrackingEngine
@@ -82,14 +83,30 @@ struct GamePageView: View {
     // --- 🚀 NEW HELPER: Timer & Overlay Logic ---
     private func triggerInstruction() {
         showInstruction = true
-        director.pauseTimer() // Pause game so they don't lose time reading!
+        director.pauseTimer() // Pause game so they don't lose time watching the video!
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+        // 1. Ambil nama video dan hitung durasinya
+        let filename = getVideoFilename()
+        let exactDuration = getVideoDuration(filename: filename)
+        
+        // 2. Tutup instruksi sesuai durasi video
+        DispatchQueue.main.asyncAfter(deadline: .now() + exactDuration) {
             withAnimation(.easeInOut(duration: 0.3)) {
                 showInstruction = false
             }
-            director.resumeTimer() // Start the 5-second clock!
+            director.resumeTimer() // Start the 5-second clock tepat setelah video hilang!
         }
+    }
+    
+    // --- ⏱️ HELPER: Otomatis baca durasi file .mov ---
+    private func getVideoDuration(filename: String?) -> Double {
+        guard let filename = filename,
+              let url = Bundle.main.url(forResource: filename, withExtension: "mov") else {
+            return 2.5
+        }
+        
+        let asset = AVURLAsset(url: url)
+        return CMTimeGetSeconds(asset.duration) + 0.2
     }
     
     // 🏗️ HELPER 1: The Switchboard
@@ -232,11 +249,13 @@ struct GamePageView: View {
     // --- UI HELPERS & LOGIC ---
     private func getVideoFilename() -> String? {
         switch director.currentGame {
-        // If the current game is .bonus, tell the overlay to play this file!
+        case .stomp: return "Stomp_Recording"
+        case .drill: return "Tap_Recording"
+        case .party: return "Wave_Recording"
+        case .dj: return "DJ_Recording"
+        case .cymbals: return "Clap_Recording"
+        case .furniture: return "Pinch_Recording"
         case .bonus: return "67_Recording"
-            
-        // For all other games (until you record videos for them), return nothing
-        default: return nil
         }
     }
 
